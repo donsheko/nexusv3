@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  uuid        String   @id @default(uuid())
+  name        String   @unique
+  stack       String?  @db.Text
+  devops      String?  @db.Text
+  specs       Spec[]
+  sdrEntries  SdrCol[]
+
+  @@map("projects")
+}
+
+model Spec {
+  id           Int         @id @default(autoincrement())
+  projectId    String      @map("project_id")
+  project      Project     @relation(fields: [projectId], references: [uuid])
+  title        String
+  stepsCount   Int         @map("steps")
+  currentStep  Int         @map("current_step")
+  percentage   Int
+  status       SpecStatus  @default(PENDING)
+  context      String?     @db.Text
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  steps        StepSpec[]
+  sdrEntries   SdrCol[]
+
+  @@map("specs")
+}
+
+enum SpecStatus {
+  PENDING     @map("pending")
+  IN_PROGRESS @map("in_progress")
+  COMPLETED   @map("completed")
+  FAILED      @map("failed")
+}
+
+model StepSpec {
+  id           Int         @id @default(autoincrement())
+  specId       Int         @map("spec_id")
+  spec         Spec        @relation(fields: [specId], references: [id])
+  stepNumber   Int         @map("step_number")
+  dependsId    Int?        @map("depends_id")
+  dependency   StepSpec?   @relation("StepDependencies", fields: [dependsId], references: [id])
+  dependents   StepSpec[]  @relation("StepDependencies")
+  title        String
+  meta         String?     @db.Text
+  context      String?     @db.Text
+  status       SpecStatus  @default(PENDING)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  audits       AuditStep[]
+
+  @@map("steps_spec")
+}
+
+model AuditStep {
+  id           Int      @id @default(autoincrement())
+  stepId       Int      @map("step_id")
+  step         StepSpec @relation(fields: [stepId], references: [id])
+  title        String
+  issuesFound  String?  @map("issues_found") @db.Text
+  fixPlan      String?  @map("fix_plan") @db.Text
+  fixed        Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("audit_steps")
+}
+
+model SdrCol {
+  id               Int      @id @default(autoincrement())
+  specId           Int      @map("spec_id")
+  spec             Spec     @relation(fields: [specId], references: [id])
+  projectId        String   @map("project_id")
+  project          Project  @relation(fields: [projectId], references: [uuid])
+  quePaso          String?  @map("que_paso") @db.Text
+  queSenti         String?  @map("que_senti") @db.Text
+  queAprendi       String?  @map("que_aprendi") @db.Text
+  queQuieroLograr  String?  @map("que_quiero_lograr") @db.Text
+  quePresupongo    String?  @map("que_presupongo") @db.Text
+  conceptosClave   String?  @map("conceptos_clave") @db.Text
+  ejemplos         String?  @db.Text
+  contraejemplos   String?  @db.Text
+  dudasPendientes  String?  @map("dudas_pendientes") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("sdr_col")
+}

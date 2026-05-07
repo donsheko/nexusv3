@@ -1,0 +1,33 @@
+{
+  "name": "sko-nexus-v3",
+  "version": "3.0.0",
+  "description": "Sistema Operativo de Sko-Nexus - Orquestador Inteligente",
+  "private": true,
+  "scripts": {
+    "dev:webapp": "npm run dev --workspace=webapp",
+    "build:webapp": "npm run build --workspace=webapp",
+    "start:webapp": "npm run start --workspace=webapp",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "workspaces": [
+    "webapp",
+    "mcp"
+  ],
+  "keywords": [
+    "sko-nexus",
+    "mcp",
+    "ai-agent",
+    "orchestrator"
+  ],
+  "author": "Sko-Nexus Team",
+  "license": "ISC",
+  "devDependencies": {
+    "prisma": "^7.8.0",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.8.0"
+  }
+}
