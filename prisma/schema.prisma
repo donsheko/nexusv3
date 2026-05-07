@@ -57,6 +57,7 @@ model StepSpec {
   meta         String?     @db.Text
   context      String?     @db.Text
   status       SpecStatus  @default(PENDING)
+  sdr          String?     @db.Text
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
   audits       AuditStep[]
