@@ -97,4 +97,5 @@ model SdrCol {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("sdr_col")
+  @@fulltext([quePaso, queAprendi, conceptosClave])
 }
