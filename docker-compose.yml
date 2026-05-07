@@ -1,7 +1,7 @@
 services:
   database:
     image: mariadb:10.11
-    container_name: sko_nexus_db
+    container_name: nexus_db
     restart: always
     environment:
       MARIADB_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD}
