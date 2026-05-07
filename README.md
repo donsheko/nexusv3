@@ -1,4 +1,4 @@
-# Sko-Nexus v3
+# Sko-Nexus
 
 Sistema Operativo de Orquestación Inteligente basado en el protocolo SDD (Specify, Design, Develop).
 
