@@ -1,0 +1,26 @@
+services:
+  database:
+    image: mariadb:10.11
+    container_name: nexus_v3_db
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DATABASE_NAME}
+      MARIADB_USER: ${DATABASE_USER}
+      MARIADB_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "${DATABASE_PORT}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    command: mysqld --innodb_ft_min_token_size=1 --wait_timeout=28800 --interactive_timeout=28800 --max_allowed_packet=64M
+    networks:
+      - nexus_network
+
+  # El servicio webapp y mcp se agregarán cuando los Dockerfiles estén listos
+
+networks:
+  nexus_network:
+    driver: bridge
+
+volumes:
+  mariadb_data:
