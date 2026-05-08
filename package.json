@@ -15,7 +15,8 @@
   },
   "workspaces": [
     "webapp",
-    "mcp"
+    "mcp",
+    "prisma"
   ],
   "keywords": [
     "sko-nexus",

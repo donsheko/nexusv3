@@ -1,16 +1,16 @@
-import { homedir } from 'os';
-import { access, constants } from 'fs/promises';
-import { join } from 'path';
+import {homedir} from "os";
+import {access, constants} from "fs/promises";
+import {join} from "path";
 
 /**
  * Mapa de agentes AI y sus directorios de configuración relativos al $HOME.
  * @type {Object<string, string>}
  */
 const AGENTS_DEFINITIONS = {
-  antigravity: '.gemini',
-  'claude-code': '.claude',
-  'gemini-cli': '.gemini-cli',
-  opencode: '.config/opencode',
+  antigravity: ".gemini/antigravity",
+  "claude-code": ".claude",
+  "gemini-cli": ".gemini-cli",
+  opencode: ".config/opencode",
 };
 
 /**
@@ -39,13 +39,13 @@ export async function detectLocalAgents() {
       await access(fullPath, constants.F_OK);
       exists = true;
     } catch (err) {
-      error = err.code === 'ENOENT' ? 'NOT_FOUND' : err.code;
+      error = err.code === "ENOENT" ? "NOT_FOUND" : err.code;
     }
 
     results[agent] = {
       path: fullPath,
       exists,
-      ...(error ? { error } : {}),
+      ...(error ? {error} : {}),
     };
   }
 

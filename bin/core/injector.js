@@ -1,5 +1,5 @@
 /**
- * Inyector de ADN — Sko-Nexus v3
+ * Inyector de Maestro, Subagentes, Skills y MCP
  * ================================
  * Motor de ensamblaje de instrucciones .md para agentes AI.
  *
@@ -11,14 +11,22 @@
  * @module core/injector
  */
 
-import { readFile, readdir, copyFile, mkdir, writeFile, access, constants } from 'fs/promises';
-import { join, dirname, basename } from 'path';
-import { fileURLToPath } from 'url';
+import {
+  readFile,
+  readdir,
+  copyFile,
+  mkdir,
+  writeFile,
+  access,
+  constants,
+} from "fs/promises";
+import {join, dirname, basename} from "path";
+import {fileURLToPath} from "url";
 
 // ─── Rutas Base ───────────────────────────────────────────────────────────
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ASSETS_DIR = join(__dirname, '..', '..', 'assets');
+const ASSETS_DIR = join(__dirname, "..", "..", "assets");
 
 /**
  * Mapa de componentes del ADN y sus rutas relativas dentro de assets/.
@@ -27,23 +35,16 @@ const ASSETS_DIR = join(__dirname, '..', '..', 'assets');
  */
 const COMPONENT_MAP = [
   {
-    id: 'maestro',
-    paths: [
-      join('maestro', 'maestro_base.md'),
-      join('maestro', 'persona.md'),
-    ],
+    id: "maestro",
+    paths: [join("maestro", "maestro_base.md"), join("maestro", "persona.md")],
   },
   {
-    id: 'sko-spec',
-    paths: [
-      join('skills', 'sko-spec', 'SKILL.md'),
-    ],
+    id: "sko-spec",
+    paths: [join("skills", "sko-spec", "SKILL.md")],
   },
   {
-    id: 'sko-mcp-mastery',
-    paths: [
-      join('skills', 'sko-mcp-mastery', 'SKILL.md'),
-    ],
+    id: "sko-mcp-mastery",
+    paths: [join("skills", "sko-mcp-mastery", "SKILL.md")],
   },
 ];
 
@@ -58,9 +59,9 @@ const COMPONENT_MAP = [
  */
 function cleanFrontmatter(content) {
   return content
-    .replace(/^---[\s\S]*?---\n*/m, '')   // YAML standard (---)
-    .replace(/^\+\+\+[\s\S]*?\+\+\+\n*/m, '') // TOML (+++)
-    .replace(/^\{[\s\S]*?\}\n*/m, '')       // JSON ({})
+    .replace(/^---[\s\S]*?---\n*/m, "") // YAML standard (---)
+    .replace(/^\+\+\+[\s\S]*?\+\+\+\n*/m, "") // TOML (+++)
+    .replace(/^\{[\s\S]*?\}\n*/m, "") // JSON ({})
     .trim();
 }
 
@@ -75,7 +76,7 @@ async function readComponent(possiblePaths) {
     const fullPath = join(ASSETS_DIR, relativePath);
     try {
       await access(fullPath, constants.F_OK);
-      const raw = await readFile(fullPath, 'utf-8');
+      const raw = await readFile(fullPath, "utf-8");
       const cleaned = cleanFrontmatter(raw);
       console.error(`[injector] ✓ Componente cargado: ${relativePath}`);
       return cleaned;
@@ -83,7 +84,9 @@ async function readComponent(possiblePaths) {
       // Intentar siguiente ruta
     }
   }
-  console.error(`[injector] ⚠ Componente no encontrado: ${possiblePaths[0]} (y alternativas)`);
+  console.error(
+    `[injector] ⚠ Componente no encontrado: ${possiblePaths[0]} (y alternativas)`,
+  );
   return null;
 }
 
@@ -127,7 +130,7 @@ export async function assembleADN(agentName) {
   if (parts.length === 0) {
     throw new Error(
       `[injector] No se encontraron componentes de ADN para ensamblar. ` +
-      `Verifica assets/maestro/ y assets/skills/`
+        `Verifica assets/maestro/ y assets/skills/`,
     );
   }
 
@@ -136,9 +139,9 @@ export async function assembleADN(agentName) {
     `# 🧬 ADN — ${agentName}`,
     `> Generado por Sko-Nexus v3 Injector`,
     `> Fecha: ${new Date().toISOString()}`,
-    '',
+    "",
     ...parts,
-  ].join('\n\n');
+  ].join("\n\n");
 }
 
 /**
@@ -151,22 +154,25 @@ export async function assembleADN(agentName) {
  * @returns {Promise<{success: boolean, count?: number, error?: string}>}
  */
 export async function copySubagents(targetPath) {
-  const subagentsDir = join(ASSETS_DIR, 'subagents');
-  const subagentsTarget = join(targetPath, 'subagents');
+  const subagentsDir = join(ASSETS_DIR, "subagents");
+  const subagentsTarget = join(targetPath, "subagents");
 
   try {
     if (!(await pathExists(subagentsDir))) {
-      return { success: false, error: 'Directorio assets/subagents/ no encontrado' };
+      return {
+        success: false,
+        error: "Directorio assets/subagents/ no encontrado",
+      };
     }
 
     const files = await readdir(subagentsDir);
-    const mdFiles = files.filter((f) => f.endsWith('.md'));
+    const mdFiles = files.filter((f) => f.endsWith(".md"));
 
     if (mdFiles.length === 0) {
-      return { success: true, count: 0 };
+      return {success: true, count: 0};
     }
 
-    await mkdir(subagentsTarget, { recursive: true });
+    await mkdir(subagentsTarget, {recursive: true});
 
     for (const file of mdFiles) {
       const src = join(subagentsDir, file);
@@ -174,10 +180,12 @@ export async function copySubagents(targetPath) {
       await copyFile(src, dest);
     }
 
-    console.error(`[injector] ✓ ${mdFiles.length} subagentes copiados a ${subagentsTarget}`);
-    return { success: true, count: mdFiles.length };
+    console.error(
+      `[injector] ✓ ${mdFiles.length} subagentes copiados a ${subagentsTarget}`,
+    );
+    return {success: true, count: mdFiles.length};
   } catch (err) {
-    return { success: false, error: `Error copiando subagentes: ${err.message}` };
+    return {success: false, error: `Error copiando subagentes: ${err.message}`};
   }
 }
 
@@ -201,18 +209,22 @@ export async function copySubagents(targetPath) {
  */
 export async function injectADN(agentName, targetPath) {
   try {
-    console.error(`[injector] ▶ Inyectando ADN para "${agentName}" en ${targetPath}`);
+    console.error(
+      `[injector] ▶ Inyectando ADN para "${agentName}" en ${targetPath}`,
+    );
 
     // 1. Ensamblar ADN
     const adnContent = await assembleADN(agentName);
 
     // 2. Preparar directorio destino
-    await mkdir(targetPath, { recursive: true });
+    await mkdir(targetPath, {recursive: true});
 
     // 3. Escribir archivo de instrucciones
-    const instructionFile = join(targetPath, 'INSTRUCCIONES.md');
-    await writeFile(instructionFile, adnContent, 'utf-8');
-    console.error(`[injector] ✓ INSTRUCCIONES.md escrito (${adnContent.length} bytes)`);
+    const instructionFile = join(targetPath, "INSTRUCCIONES.md");
+    await writeFile(instructionFile, adnContent, "utf-8");
+    console.error(
+      `[injector] ✓ INSTRUCCIONES.md escrito (${adnContent.length} bytes)`,
+    );
 
     // 4. Copiar subagentes
     const subagentsResult = await copySubagents(targetPath);

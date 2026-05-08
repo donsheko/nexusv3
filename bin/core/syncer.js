@@ -1,5 +1,5 @@
-import { syncSkillsInternal, syncAgentsInternal } from "../../mcp/lib/sync.js";
-import prisma from "../../mcp/lib/prisma.js";
+import { syncSkillsInternal, syncAgentsInternal } from "@sko/prisma/lib/sync.js";
+import prisma from "@sko/prisma/lib/prisma.js";
 
 /**
  * Sincroniza el cerebro (Skills y Agentes) con la base de datos.

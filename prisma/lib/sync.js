@@ -1,22 +1,24 @@
 /**
- * Sko-Nexus Syncer (CommonJS)
- * ============================
+ * Sko-Nexus Syncer (ESM)
+ * ======================
  * Sincroniza Skills y Agentes desde assets/ a la base de datos.
- * 
- * NOTA: Este archivo es intencionalmente CommonJS porque reside
- * dentro del workspace "mcp" (type: commonjs). El CLI (ESM) lo
- * importa usando el interop nativo de Node.js.
+ *
+ * Ahora en ESM dentro de prisma/lib/ para centralización.
  */
 
-const fs = require("fs/promises");
-const path = require("path");
-const prisma = require("./prisma.js");
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import prisma from "./prisma.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Sincroniza las Skills desde assets/skills/
  */
 async function syncSkillsInternal(providedPrisma) {
-  const rootDir = path.resolve(__dirname, "..", "..");
+  const rootDir = path.resolve(__dirname, "../..");
   const skillsPath = path.join(rootDir, "assets", "skills");
 
   try {
@@ -54,7 +56,7 @@ async function syncSkillsInternal(providedPrisma) {
         }))
       ]);
     }
-    
+
     return { success: true, count: diskSkills.length };
   } catch (error) {
     return { success: false, error: error.message };
@@ -65,7 +67,7 @@ async function syncSkillsInternal(providedPrisma) {
  * Sincroniza los Agentes desde assets/subagents/
  */
 async function syncAgentsInternal(providedPrisma) {
-  const rootDir = path.resolve(__dirname, "..", "..");
+  const rootDir = path.resolve(__dirname, "../..");
   const agentsPath = path.join(rootDir, "assets", "subagents");
 
   try {
@@ -103,4 +105,4 @@ async function syncAgentsInternal(providedPrisma) {
   }
 }
 
-module.exports = { syncSkillsInternal, syncAgentsInternal };
+export { syncSkillsInternal, syncAgentsInternal };
