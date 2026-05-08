@@ -1,7 +1,6 @@
-const {PrismaClient} = require("@prisma/client");
+const prisma = require("../lib/prisma.js");
 const {StepSchema} = require("../../prisma/schemas/index.js");
 const {syncSpecProgress} = require("./sko_spec.js");
-const prisma = new PrismaClient();
 
 module.exports = {
   definition: {
@@ -68,6 +67,25 @@ module.exports = {
           };
 
         case "end":
+          // Validar bloqueo de auditoría: no permitir cierre si hay auditorías pendientes
+          const pendingAudits = await prisma.auditStep.findMany({
+            where: {stepId: Number(id), fixed: false},
+          });
+
+          if (pendingAudits.length > 0) {
+            const count = pendingAudits.length;
+            const auditIds = pendingAudits.map((a) => a.id).join(", ");
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `No se puede completar el paso: existen ${count} auditoría(s) pendiente(s) de resolución (IDs: ${auditIds}). Resuélvelas usando sko_audit (fix) antes de cerrar el paso.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+
           const endedStep = await prisma.stepSpec.update({
             where: {id: Number(id)},
             data: {status: "completed"},

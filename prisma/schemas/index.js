@@ -33,8 +33,18 @@ const ProjectSchema = z.object({
   devops: z.string().optional()
 });
 
+const AuditSchema = z.object({
+  action: z.enum(["create", "get", "fix"]),
+  id: z.number().optional(),
+  stepId: z.number().optional(),
+  title: z.string().optional(),
+  issuesFound: z.string().optional(),
+  fixPlan: z.string().optional(),
+});
+
 module.exports = {
   SpecSchema,
   StepSchema,
-  ProjectSchema
+  ProjectSchema,
+  AuditSchema
 };

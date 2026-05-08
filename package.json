@@ -3,13 +3,15 @@
   "version": "3.0.0",
   "description": "Sistema Operativo de Sko-Nexus - Orquestador Inteligente",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev:webapp": "npm run dev --workspace=webapp",
     "build:webapp": "npm run build --workspace=webapp",
     "start:webapp": "npm run start --workspace=webapp",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "sko": "node bin/sko.js"
   },
   "workspaces": [
     "webapp",
@@ -28,9 +30,17 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@inkjs/ui": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.0.1",
+    "@prisma/adapter-mariadb": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "chalk": "^5.6.2",
     "dotenv": "^17.4.2",
+    "ink": "^7.0.2",
+    "lucide-react": "^1.14.0",
+    "mariadb": "^3.5.2",
+    "react": "^19.2.6",
+    "react-reconciler": "^0.33.0",
     "zod": "^3.23.8"
   }
 }

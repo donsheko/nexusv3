@@ -1,6 +1,5 @@
-const {PrismaClient} = require("@prisma/client");
+const prisma = require("../lib/prisma.js");
 const {SpecSchema} = require("../../prisma/schemas/index.js");
-const prisma = new PrismaClient();
 
 /**
  * Actualiza los contadores y el porcentaje de una Spec basándose en sus Steps
