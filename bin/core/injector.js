@@ -36,15 +36,11 @@ const ASSETS_DIR = join(__dirname, "..", "..", "assets");
 const COMPONENT_MAP = [
   {
     id: "maestro",
-    paths: [join("maestro", "maestro_base.md"), join("maestro", "persona.md")],
-  },
-  {
-    id: "sko-spec",
-    paths: [join("skills", "sko-spec", "SKILL.md")],
-  },
-  {
-    id: "sko-mcp-mastery",
-    paths: [join("skills", "sko-mcp-mastery", "SKILL.md")],
+    paths: [
+      join("maestro", "maestro_base.md"),
+      join("maestro", "persona.md"),
+      join("maestro", "shield.md"),
+    ],
   },
 ];
 
@@ -174,10 +170,16 @@ export async function copySubagents(targetPath) {
 
     await mkdir(subagentsTarget, {recursive: true});
 
+    const shieldContent = await readComponent([join("maestro", "shield.md")]);
+
     for (const file of mdFiles) {
       const src = join(subagentsDir, file);
       const dest = join(subagentsTarget, file);
-      await copyFile(src, dest);
+      
+      const rawContent = await readFile(src, "utf-8");
+      const finalContent = (rawContent + "\n\n" + (shieldContent || "")).trim();
+      
+      await writeFile(dest, finalContent, "utf-8");
     }
 
     console.error(

@@ -16,8 +16,49 @@ model Project {
   devops      String?  @db.Text
   specs       Spec[]
   sdrEntries  SdrCol[]
+  memories    Memory[]
 
   @@map("projects")
+}
+
+model Memory {
+  id         String   @id @default(uuid())
+  projectId  String   @map("project_id")
+  project    Project  @relation(fields: [projectId], references: [uuid])
+  type       String   // 'decision', 'insight', 'preference', 'summary'
+  content    String   @db.Text
+  tags       String?  // Ej: "prisma, database, fix"
+  sdrId      Int?     @map("sdr_id")
+  sdr        SdrCol?  @relation(fields: [sdrId], references: [id])
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([projectId, tags])
+  @@fulltext([content, tags])
+  @@map("memories")
+}
+
+model SdrCol {
+  id               Int      @id @default(autoincrement())
+  specId           Int      @map("spec_id")
+  spec             Spec     @relation(fields: [specId], references: [id])
+  projectId        String   @map("project_id")
+  project          Project  @relation(fields: [projectId], references: [uuid])
+  quePaso          String?  @map("que_paso") @db.Text
+  queSenti         String?  @map("que_senti") @db.Text
+  queAprendi       String?  @map("que_aprendi") @db.Text
+  queQuieroLograr  String?  @map("que_quiero_lograr") @db.Text
+  quePresupongo    String?  @map("que_presupongo") @db.Text
+  conceptosClave   String?  @map("conceptos_clave") @db.Text
+  ejemplos         String?  @db.Text
+  contraejemplos   String?  @db.Text
+  dudasPendientes  String?  @map("dudas_pendientes") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  memories         Memory[]
+
+  @@map("sdr_col")
+  @@fulltext([quePaso, queAprendi, conceptosClave])
 }
 
 model Spec {
@@ -77,26 +118,4 @@ model AuditStep {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("audit_steps")
-}
-
-model SdrCol {
-  id               Int      @id @default(autoincrement())
-  specId           Int      @map("spec_id")
-  spec             Spec     @relation(fields: [specId], references: [id])
-  projectId        String   @map("project_id")
-  project          Project  @relation(fields: [projectId], references: [uuid])
-  quePaso          String?  @map("que_paso") @db.Text
-  queSenti         String?  @map("que_senti") @db.Text
-  queAprendi       String?  @map("que_aprendi") @db.Text
-  queQuieroLograr  String?  @map("que_quiero_lograr") @db.Text
-  quePresupongo    String?  @map("que_presupongo") @db.Text
-  conceptosClave   String?  @map("conceptos_clave") @db.Text
-  ejemplos         String?  @db.Text
-  contraejemplos   String?  @db.Text
-  dudasPendientes  String?  @map("dudas_pendientes") @db.Text
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  @@map("sdr_col")
-  @@fulltext([quePaso, queAprendi, conceptosClave])
 }
