@@ -5,9 +5,10 @@
  * =====================================================================
  * Componente que orquesta y muestra en vivo el progreso de la inyección
  * de Sko-Nexus en los agentes seleccionados. Ejecuta secuencialmente:
- *   1. linkMCPServer()   — Vincular servidor MCP
+ *   1. syncMcp()         — Vincular servidor MCP
  *   2. provisionIdentity() — Provisionar identidad
- *   3. injectADN()       — Inyectar instrucciones ADN
+ *   3. syncMaestro()     — Inyectar instrucciones Maestro
+ *   4. syncSubagents()   — Copiar subagentes
  *
  * Cada paso muestra un Spinner mientras se ejecuta.
  *
@@ -22,34 +23,21 @@ import { join } from 'path';
 
 // ─── Módulos Core ──────────────────────────────────────────────────────────
 
-import { linkMCPServer } from '../core/mcp-linker.js';
+import { syncMaestro, syncSubagents, syncMcp } from '../core/injector.js';
 import { provisionIdentity } from '../core/identity.js';
-import { injectADN } from '../core/injector.js';
 
 // ─── Configuración de Pasos ────────────────────────────────────────────────
 
 const STEPS = [
   { id: 'mcp', icon: '🔗', label: 'Servidor MCP' },
   { id: 'identity', icon: '🔑', label: 'Identidad (Auth)' },
-  { id: 'adn', icon: '🧬', label: 'ADN (Instrucciones)' },
+  { id: 'maestro', icon: '👑', label: 'Maestro (ADN)' },
+  { id: 'subagents', icon: '🤖', label: 'Subagentes' },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-/**
- * Determina la ruta al archivo de configuración MCP para un agente.
- *
- * @param {string} agentName    - Nombre del agente (opencode, claude-code, etc.)
- * @param {string} detectedPath - Ruta detectada por el detector
- * @returns {string} Ruta absoluta al archivo de configuración
- */
-function getMCPConfigPath(agentName, detectedPath) {
-  const configMap = {
-    opencode: join(detectedPath, 'opencode.json'),
-    'claude-code': join(homedir(), '.claude.json'),
-  };
-  return configMap[agentName] || join(detectedPath, 'config.json');
-}
+import { getMCPConfigPath } from '../helpers/getMCPConfigPath.js';
 
 // ─── Sub-componente: Estado de un paso individual ──────────────────────────
 
@@ -219,16 +207,22 @@ function InjectionFlow({ agents, selected, onComplete }) {
 
             switch (step.id) {
               case 'mcp': {
-                const configPath = getMCPConfigPath(agentName, agentPath);
-                result = await linkMCPServer(agentName, configPath);
+                const res = await syncMcp({ [agentName]: agentInfo });
+                result = res[agentName];
                 break;
               }
               case 'identity': {
                 result = await provisionIdentity();
                 break;
               }
-              case 'adn': {
-                result = await injectADN(agentName, agentPath);
+              case 'maestro': {
+                const res = await syncMaestro({ [agentName]: agentInfo });
+                result = res[agentName];
+                break;
+              }
+              case 'subagents': {
+                const res = await syncSubagents({ [agentName]: agentInfo });
+                result = res[agentName];
                 break;
               }
             }
