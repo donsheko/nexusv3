@@ -1,20 +1,20 @@
 ---
-description: Realiza una auditoría técnica final sobre los resultados de la misión.
+description: Audita los resultados de un paso o de la misión completa, emitiendo hallazgos o liberando bloqueos.
 agent: consultor
 ---
 
-## Datos de la Spec y el Step
+## Herramientas de Auditoría
+- **Obtener Spec**: `sko_spec({ action: "get", id: $1 })`
+- **Listar Pasos**: `sko_step({ action: "get_all", specId: $1 })`
+- **Registrar Hallazgo**: `sko_audit({ action: "create", stepId: $2, title: "Título_Error", issuesFound: "Descripción", fixPlan: "Pasos_para_corregir" })`
+- **Validar Corrección**: `sko_audit({ action: "fix", id: Audit_ID })`
 
-**Obtener Spec**: `sko-spec("get", $1)`
-**Obtener Resultado Final**: `sko-audit-report($1)`
-**Registrar Hallazgo**: `sko-audit-issue($1, "Título", "Descripción", "Plan_de_Fix")`
-**Finalizar Misión**: `sko-mission-complete($1)`
+## Protocolo de Control de Calidad
 
-## Ejecución de la Auditoría
-
-1. Obtener la especificación original con `sko-spec("get", $1)` y el reporte de resultados técnicos con `sko-audit-report($1)`.
-2. Analizar el código generado y validar que cumple con los criterios de aceptación y las asunciones validadas.
-3. Si se encuentran errores o desviaciones:
-    - Registrar cada punto utilizando `sko-audit-issue($1, "Título", "Descripción", "Plan_de_Fix")`.
-    - Informar al Maestro sobre los bloqueos detectados.
-4. Si la auditoría es exitosa y no quedan puntos pendientes, ejecutar `sko-mission-complete($1)` para cerrar la misión y marcarla como `completed` en la base de datos.
+1.  **Revisión de DAG**: Analizar el estado de todos los pasos de la misión.
+2.  **Validación Técnica**: Verificar que el código generado por los subagentes cumpla con los estándares de Sko-Nexus y los criterios de la especificación.
+3.  **Gestión de Veto**:
+    - Si se detecta un fallo, registrarlo mediante `sko_audit(create)`. Esto bloquea el cierre del paso afectado.
+    - El subagente responsable deberá corregir el issue y notificar al `@Consultor`.
+4.  **Liberación**: Una vez validada la corrección, marcar el hallazgo como resuelto usando `sko_audit(fix)`.
+5.  **Veredicto Final**: Informar al `@Maestro` cuando la misión esté lista para ser consolidada.

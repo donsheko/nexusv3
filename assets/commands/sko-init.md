@@ -1,14 +1,23 @@
 ---
-description: Initialize a new SKO project
+description: Inicializa una nueva misión en Sko-Nexus capturando la necesidad del usuario y validando asunciones.
 agent: maestro
 ---
 
-1.  **Captura de necesidad**: se le pregunta al usuario por su necesidad o historia de usuario para comprender el contexto y los objetivos de la tarea.
-2.  **Mapeo de Asunciones**: El Maestro identifica "espacios en blanco" y asunciones funcionales/técnicas necesarias para completar la definición.
+Carga el manual maestro de orquestación desde `~/.config/opencode/skills/sko-guia-orquestacion/SKILL.md` para entender el ciclo de vida completo de la misión.
+
+## Herramientas de Misión
+- **Iniciar Spec**: `sko_spec({ action: "start", title: "Título_Misión", projectId: "UUID", context: "Historia_Usuario" })`
+
+## Flujo de Especificación (Protocolo v3)
+
+1.  **Captura de Necesidad**: Solicitar al usuario su historia de usuario o requerimiento técnico para comprender el contexto.
+2.  **Mapeo de Asunciones**: Identificar "puntos ciegos" (funcionales o técnicos) y generar una lista de asunciones necesarias para proceder.
 3.  **Loop de Validación**:
-    - El Maestro presenta un listado numerado de asunciones.
-    - El usuario indica los números de las asunciones que desea cambiar.
-    - El Maestro realiza preguntas una a una para refinar cada punto.
-    - **UI de Preguntas**: Se muestra una barra de progreso, se ofrecen 4 opciones de asunción refinada + una 5ta opción "Otra" para respuesta libre.
-4.  **Iniciar Spec**: Una vez consolidada la necesidad del usuario, el Maestro guarda la `sko_spec({action: "start})`
-5.  **Run Analysis**: El Maestro invoca el comando `/sko-analyze $spec_id` para que el Arquitecto descomponga la misión en pasos técnicos y los guarde en la DB.
+    - Presentar la lista de asunciones numerada.
+    - El usuario indica qué números desea refinar o cambiar.
+    - Realizar preguntas una a una para cada asunción rechazada:
+        - Mostrar **Barra de Progreso** del refinamiento.
+        - Ofrecer **4 opciones sugeridas**.
+        - Ofrecer una **5ta opción ("Otra")** para entrada libre.
+4.  **Registro SSOT**: Una vez consolidado, registrar la misión usando `sko_spec(action: "start")`.
+5.  **Delegación de Análisis**: Invocar al `@Arquitecto` mediante el comando `/sko-analyze $spec_id` para iniciar la fase de planificación.

@@ -1,21 +1,22 @@
 ---
-description: Analiza una especificación consolidada para crear el plan técnico y el DAG de tareas.
+description: Analiza una especificación para crear el Grafo de Dependencias (DAG) y los pasos técnicos de la misión.
 agent: arquitecto
 ---
 
-## Datos de la Spec y el Proyecto
+## Herramientas de Planificación
+- **Obtener Spec**: `sko_spec({ action: "get", id: $1 })`
+- **Obtener ADN**: `sko_project({ action: "get", project: "UUID" })`
+- **Consultar Sabiduría**: `sko_sdr({ action: "search", project: "UUID", query: "conceptos_clave" })`
+- **Crear Paso (DAG)**: `sko_step({ action: "create", specId: $1, stepNumber: N, title: "Título", meta: "Detalle_Técnico", dependsId: ID_Previo })`
+- **Finalizar Fase**: `sko_spec({ action: "update", id: $1, status: "in_progress" })`
 
-**Obtener Spec**: `sko-spec("get", $1)`
-**Obtener Adn**: `sko-adn("get", $2)`
-**Consultar Sabiduría**: `sko-sdr-search($2, "Query")`
-**Crear Plan (DAG)**: `sko-plan-create($1, "JSON_PLAN")`
-**Finalizar Análisis**: `sko-analyze-end($1)`
+## Ejecución de la Planificación
 
-## Ejecución del Análisis
-
-1. Obtener y analizar la especificación consolidada utilizando `sko-spec("get", $1)` y el ADN del proyecto con `sko-adn("get", $2)`.
-2. Consultar la Bitácora de Sabiduría usando `sko-sdr-search($2, "conceptos_clave")` para identificar lecciones aprendidas o patrones exitosos/fallidos de misiones anteriores que apliquen a este plan.
-3. Diseñar un plan técnico detallado que descomponga la misión en pasos atómicos (DAG).
-3. Cada paso del plan debe incluir: título, agente asignado (`@desarrollador`, `@disenador`, `@explorador`), objetivos (`meta`) y contexto técnico de archivos.
-4. Registrar el plan completo en el sistema utilizando `sko-plan-create($1, "JSON_PLAN")`.
-5. Una vez confirmado el registro del DAG, finalizar el proceso utilizando `sko-analyze-end($1)` para notificar al Maestro que la misión está lista para ejecución.
+1.  **Contextualización**: Leer la especificación original (`sko_spec`) y el ADN del proyecto (`sko_project`).
+2.  **Consulta SDR**: Buscar en la Bitácora de Sabiduría (`sko_sdr`) patrones técnicos o lecciones aprendidas de misiones previas que apliquen al plan actual.
+3.  **Arquitectura del DAG**: Diseñar un plan de pasos atómicos. Cada paso debe incluir:
+    - Agente asignado (`@desarrollador`, `@disenador`, `@explorador`).
+    - Contexto técnico de archivos.
+    - Dependencias claras entre pasos.
+4.  **Registro de Pasos**: Crear cada paso en la base de datos usando `sko_step(action: "create")`.
+5.  **Activación de Misión**: Una vez registrado el DAG completo, actualizar el estado de la misión a `in_progress` y notificar al `@Maestro` para iniciar la ejecución.
