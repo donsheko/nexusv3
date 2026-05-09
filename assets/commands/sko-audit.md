@@ -1,20 +1,19 @@
 ---
-description: Audita los resultados de un paso o de la misión completa, emitiendo hallazgos o liberando bloqueos.
+description: Audita los resultados de la misión completa bajo demanda del usuario, emitiendo hallazgos o liberando el cierre.
 agent: consultor
 ---
 
 ## Herramientas de Auditoría
 - **Obtener Spec**: `sko_spec({ action: "get", id: $1 })`
-- **Listar Pasos**: `sko_step({ action: "get_all", specId: $1 })`
-- **Registrar Hallazgo**: `sko_audit({ action: "create", stepId: $2, title: "Título_Error", issuesFound: "Descripción", fixPlan: "Pasos_para_corregir" })`
+- **Registrar Hallazgo**: `sko_audit({ action: "create", specId: $1, title: "Título_Error", issuesFound: "Descripción", fixPlan: "Pasos_para_corregir" })`
 - **Validar Corrección**: `sko_audit({ action: "fix", id: Audit_ID })`
 
-## Protocolo de Control de Calidad
+## Protocolo de Control de Calidad (Bajo Demanda)
 
-1.  **Revisión de DAG**: Analizar el estado de todos los pasos de la misión.
-2.  **Validación Técnica**: Verificar que el código generado por los subagentes cumpla con los estándares de Sko-Nexus y los criterios de la especificación.
+1.  **Revisión Holística**: El Auditor interviene solo si el usuario solicita una validación técnica de la entrega final.
+2.  **Validación de Criterios**: Verificar que el producto final cumpla con todos los objetivos y asunciones validadas en la Fase 1.
 3.  **Gestión de Veto**:
-    - Si se detecta un fallo, registrarlo mediante `sko_audit(create)`. Esto bloquea el cierre del paso afectado.
-    - El subagente responsable deberá corregir el issue y notificar al `@Consultor`.
-4.  **Liberación**: Una vez validada la corrección, marcar el hallazgo como resuelto usando `sko_audit(fix)`.
-5.  **Veredicto Final**: Informar al `@Maestro` cuando la misión esté lista para ser consolidada.
+    - Si se detectan fallos críticos, registrarlos mediante `sko_audit(create)`. Esto bloquea físicamente la capacidad del `@Maestro` de marcar la misión como `completed`.
+    - Los subagentes responsables deberán realizar los ajustes necesarios.
+4.  **Liberación de Veto**: Una vez validada la corrección, marcar como resuelto usando `sko_audit(fix)`.
+5.  **Veredicto**: Notificar al `@Maestro` que la misión ha superado el control de calidad.

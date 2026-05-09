@@ -65,24 +65,6 @@ export async function handler(args) {
         };
 
       case "end":
-        const pendingAudits = await prisma.auditStep.findMany({
-          where: { stepId: Number(id), fixed: false },
-        });
-
-        if (pendingAudits.length > 0) {
-          const count = pendingAudits.length;
-          const auditIds = pendingAudits.map((a) => a.id).join(", ");
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No se puede completar el paso: existen ${count} auditoría(s) pendiente(s) de resolución (IDs: ${auditIds}). Resuélvelas usando sko_audit (fix) antes de cerrar el paso.`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
         const endedStep = await prisma.stepSpec.update({
           where: { id: Number(id) },
           data: { status: "completed" },

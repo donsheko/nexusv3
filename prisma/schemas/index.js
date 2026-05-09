@@ -36,7 +36,7 @@ export const ProjectSchema = z.object({
 export const AuditSchema = z.object({
   action: z.enum(["create", "get", "fix"]),
   id: z.number().optional(),
-  stepId: z.number().optional(),
+  specId: z.number().optional(),
   title: z.string().optional(),
   issuesFound: z.string().optional(),
   fixPlan: z.string().optional(),

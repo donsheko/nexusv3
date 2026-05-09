@@ -98,6 +98,49 @@ export async function handler(args) {
         };
 
       case "complete":
+        // Validación Hard-Lock: verificar que todos los pasos estén completados
+        const allSteps = await prisma.stepSpec.findMany({
+          where: { specId: Number(id) },
+          select: { id: true, stepNumber: true, status: true },
+        });
+
+        const incompleteSteps = allSteps.filter((s) => s.status !== "completed");
+        if (incompleteSteps.length > 0) {
+          const detail = incompleteSteps
+            .map((s) => `Paso #${s.stepNumber} (ID: ${s.id}): ${s.status}`)
+            .join(", ");
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Hard-Lock: No se puede completar la Spec. Existen ${incompleteSteps.length} paso(s) sin completar: ${detail}. Usa sko_step (end) para cerrarlos primero.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // Validación Hard-Lock: verificar que no haya auditorías pendientes
+        const pendingAudits = await prisma.auditSpec.findMany({
+          where: { specId: Number(id), fixed: false },
+          select: { id: true, title: true },
+        });
+
+        if (pendingAudits.length > 0) {
+          const detail = pendingAudits
+            .map((a) => `Auditoría #${a.id}: "${a.title}"`)
+            .join(", ");
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Hard-Lock: No se puede completar la Spec. Existen ${pendingAudits.length} auditoría(s) pendiente(s) de resolución: ${detail}. Usa sko_audit (fix) para resolverlas primero.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
         const completedSpec = await prisma.spec.update({
           where: { id: Number(id) },
           data: {

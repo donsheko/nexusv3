@@ -3,13 +3,13 @@ import { AuditSchema } from "../../prisma/schemas/index.js";
 
 export const definition = {
   name: "sko_audit",
-  description: "Gestiona las auditorías técnicas y el veto de misiones.",
+  description: "Gestiona las auditorías técnicas a nivel de Spec (misión) en Sko-Nexus.",
   inputSchema: {
     type: "object",
     properties: {
       action: { type: "string", enum: ["create", "get", "fix"] },
       id: { type: "number" },
-      stepId: { type: "number" },
+      specId: { type: "number" },
       title: { type: "string" },
       issuesFound: { type: "string" },
       fixPlan: { type: "string" }
@@ -20,14 +20,14 @@ export const definition = {
 
 export async function handler(args) {
   const validated = AuditSchema.parse(args);
-  const { action, id, stepId } = validated;
+  const { action, id, specId } = validated;
 
   try {
     switch (action) {
       case "create":
-        const newAudit = await prisma.auditStep.create({
+        const newAudit = await prisma.auditSpec.create({
           data: {
-            stepId: Number(stepId),
+            specId: Number(specId),
             title: validated.title,
             issuesFound: validated.issuesFound,
             fixPlan: validated.fixPlan,
@@ -37,14 +37,14 @@ export async function handler(args) {
         return { content: [{ type: "text", text: `Auditoría registrada: ${newAudit.id}` }] };
 
       case "get":
-        const audit = await prisma.auditStep.findUnique({
+        const audit = await prisma.auditSpec.findUnique({
           where: { id: Number(id) },
-          include: { step: true }
+          include: { spec: true }
         });
         return { content: [{ type: "text", text: JSON.stringify(audit, null, 2) }] };
 
       case "fix":
-        const fixed = await prisma.auditStep.update({
+        const fixed = await prisma.auditSpec.update({
           where: { id: Number(id) },
           data: { fixed: true }
         });

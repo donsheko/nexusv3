@@ -74,6 +74,7 @@ model Spec {
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
   steps        StepSpec[]
+  audits       AuditSpec[]
   sdrEntries   SdrCol[]
 
   @@map("specs")
@@ -101,15 +102,14 @@ model StepSpec {
   sdr          String?     @db.Text
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
-  audits       AuditStep[]
 
   @@map("steps_spec")
 }
 
-model AuditStep {
+model AuditSpec {
   id           Int      @id @default(autoincrement())
-  stepId       Int      @map("step_id")
-  step         StepSpec @relation(fields: [stepId], references: [id])
+  specId       Int      @map("spec_id")
+  spec         Spec     @relation(fields: [specId], references: [id])
   title        String
   issuesFound  String?  @map("issues_found") @db.Text
   fixPlan      String?  @map("fix_plan") @db.Text
@@ -117,5 +117,5 @@ model AuditStep {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  @@map("audit_steps")
+  @@map("audit_specs")
 }
