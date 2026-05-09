@@ -6,8 +6,8 @@
  * @module core/injector
  */
 
-import { writeFile, mkdir, readdir, readFile } from "fs/promises";
-import { join, dirname } from "path";
+import { writeFile, mkdir, readdir, readFile, copyFile, stat } from "fs/promises";
+import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 // Config y Helpers
@@ -148,6 +148,51 @@ export async function syncMcp(agents) {
       await mkdir(dirname(configPath), { recursive: true });
       await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
       results[id] = { success: true, configPath };
+    } catch (err) {
+      results[id] = { success: false, error: err.message };
+    }
+  }
+  return results;
+}
+
+/**
+ * 4. syncSkills
+ * Despliega físicamente las skills de assets/skills/ en las carpetas locales de los agentes.
+ *
+ * @param {Object} agents - Mapa de agentes seleccionados
+ * @returns {Promise<Object>} Resultado por agente
+ */
+export async function syncSkills(agents) {
+  const results = {};
+  const skillsSourceDir = join(ASSETS_DIR, "skills");
+
+  for (const [id, info] of Object.entries(agents)) {
+    try {
+      const profile = AGENT_PROFILES[id];
+      if (!profile) throw new Error(`Perfil no encontrado para: ${id}`);
+      if (!profile.config.skillsDir) {
+        results[id] = { success: true, skipped: true };
+        continue;
+      }
+
+      const targetPath = join(info.path, profile.config.skillsDir);
+      await mkdir(targetPath, { recursive: true });
+
+      const skills = await readdir(skillsSourceDir);
+      for (const skillFolder of skills) {
+        const skillSrc = join(skillsSourceDir, skillFolder);
+        const s = await stat(skillSrc);
+        if (!s.isDirectory()) continue;
+
+        const targetSkillPath = join(targetPath, skillFolder);
+        await mkdir(targetSkillPath, { recursive: true });
+
+        const skillFiles = await readdir(skillSrc);
+        for (const file of skillFiles) {
+          await copyFile(join(skillSrc, file), join(targetSkillPath, file));
+        }
+      }
+      results[id] = { success: true, path: targetPath };
     } catch (err) {
       results[id] = { success: false, error: err.message };
     }

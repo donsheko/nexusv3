@@ -13,6 +13,7 @@ export const AGENT_PROFILES = {
       dir: '.config/opencode',
       mainInstructions: 'AGENTS.md',    // Evita fallback a CLAUDE.md
       subagentsDir: 'agents',           // Carpeta para @builder, etc.
+      skillsDir: 'skills',              // Carpeta para las skills (SKILL.md)
       commandsDir: 'commands',          // Donde inyectar los .md de comandos
       mcpConfigFile: 'opencode.json',
     },

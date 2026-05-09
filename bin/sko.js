@@ -13,29 +13,10 @@ import { Select } from '@inkjs/ui';
 // ─── Módulos Core ──────────────────────────────────────────────────────────
 import { detectLocalAgents } from './core/detector.js';
 import { syncBrain } from './core/syncer.js';
-import { provisionIdentity, exportIdentity } from './core/identity.js';
+import { provisionIdentity, exportIdentity, loadLocalState, saveLocalState } from './core/identity.js';
 import { detectModels } from './core/models.js';
 
-// ─── Componentes UI ────────────────────────────────────────────────────────
-import Banner from './ui/Banner.js';
-import AgentSelector from './ui/AgentSelector.js';
-import InjectionFlow from './ui/InjectionFlow.js';
-import Summary from './ui/Summary.js';
-import Dashboard from './ui/Dashboard.js';
-
-const PHASE = Object.freeze({
-  BANNER: 'banner',
-  MENU: 'menu',
-  DASHBOARD: 'dashboard',
-  SYNCING: 'syncing',
-  AUTODETECTING: 'autodetecting',
-  SELECTING_FOR_INJECTION: 'selecting_for_injection',
-  INJECTING: 'injecting',
-  DETECTING_MODELS: 'detecting_models',
-  ASSIGNING_MODELS: 'assigning_models',
-  EXPORTING_AUTH: 'exporting_auth',
-  EXIT: 'exit'
-});
+// ... (Phase definition)
 
 function App() {
   const { exit } = useApp();
@@ -44,8 +25,38 @@ function App() {
   const [agents, setAgents] = useState({});
   const [selectedAgents, setSelectedAgents] = useState([]);
   const [results, setResults] = useState([]);
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  // --- Inicialización de Estado Local ---
+  useEffect(() => {
+    async function init() {
+      const state = await loadLocalState();
+      
+      // Si el archivo no existe o nunca se ha actualizado, forzamos detección inicial
+      if (!state.updatedAt) {
+        const detected = await detectLocalAgents();
+        const activeAgents = {};
+        
+        Object.entries(detected).forEach(([id, info]) => {
+          if (info.exists) {
+            activeAgents[id] = { enabled: true, path: info.path };
+          }
+        });
+
+        await saveLocalState({ updatedAt: new Date().toISOString(), activeAgents });
+        setAgents(detected);
+      } else {
+        // Si ya existe, cargamos los agentes detectados para el menú
+        const detected = await detectLocalAgents();
+        setAgents(detected);
+      }
+      setIsInitializing(false);
+    }
+    init();
+  }, []);
 
   const handleBannerComplete = useCallback(() => setPhase(PHASE.MENU), []);
+
 
   const handleMenuSelect = async (value) => {
     setStatusMessage('');
@@ -108,6 +119,12 @@ function App() {
   
   if (phase === PHASE.BANNER) {
     return createElement(Banner, { onComplete: handleBannerComplete });
+  }
+
+  if (isInitializing) {
+    return createElement(Box, { padding: 1 },
+      createElement(Text, { color: 'yellow' }, '⏳ Inicializando Sko-Nexus v3...')
+    );
   }
 
   return createElement(Box, { flexDirection: 'column', padding: 1 },
