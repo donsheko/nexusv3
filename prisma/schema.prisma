@@ -16,26 +16,24 @@ model Project {
   devops      String?  @db.Text
   specs       Spec[]
   sdrEntries  SdrCol[]
-  memories    Memory[]
+  summaries   Summary[]
 
   @@map("projects")
 }
 
-model Memory {
+model Summary {
   id         String   @id @default(uuid())
   projectId  String   @map("project_id")
   project    Project  @relation(fields: [projectId], references: [uuid])
-  type       String   // 'decision', 'insight', 'preference', 'summary'
   content    String   @db.Text
   tags       String?  // Ej: "prisma, database, fix"
-  sdrId      Int?     @map("sdr_id")
-  sdr        SdrCol?  @relation(fields: [sdrId], references: [id])
+  sdrIds     String?  @map("sdr_ids") @db.Text
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@index([projectId, tags])
   @@fulltext([content, tags])
-  @@map("memories")
+  @@map("summaries")
 }
 
 model SdrCol {
@@ -55,7 +53,6 @@ model SdrCol {
   dudasPendientes  String?  @map("dudas_pendientes") @db.Text
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
-  memories         Memory[]
 
   @@map("sdr_col")
   @@fulltext([quePaso, queAprendi, conceptosClave])

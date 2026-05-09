@@ -141,6 +141,45 @@ export async function handler(args) {
           };
         }
 
+        // Validación Hard-Lock: verificar que exista un Summary vinculado
+        const specForSummary = await prisma.spec.findUnique({
+          where: { id: Number(id) },
+          select: { projectId: true }
+        });
+
+        const existingSummary = await prisma.summary.findFirst({
+          where: { projectId: specForSummary.projectId }
+        });
+
+        if (!existingSummary) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Hard-Lock: No se puede completar la Spec. No existe un Summary para el proyecto ${specForSummary.projectId}. Usa sko_sdr (consolidate) para generar un resumen primero.`
+              }
+            ],
+            isError: true
+          };
+        }
+
+        // Validación Hard-Lock: verificar que existan SdrCol vinculados
+        const sdrCount = await prisma.sdrCol.count({
+          where: { specId: Number(id) }
+        });
+
+        if (sdrCount === 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Hard-Lock: No se puede completar la Spec. No existen entradas SdrCol vinculadas a esta Spec (specId: ${id}). Debe haber al menos una entrada SDR antes del cierre global.`
+              }
+            ],
+            isError: true
+          };
+        }
+
         const completedSpec = await prisma.spec.update({
           where: { id: Number(id) },
           data: {

@@ -64,7 +64,26 @@ export async function handler(args) {
           content: [{ type: "text", text: JSON.stringify(nextStep, null, 2) }],
         };
 
-      case "end":
+      case "end": {
+        // Hard-Lock: Validar que StepSpec.sdr tenga contenido antes de COMPLETED
+        const currentStep = await prisma.stepSpec.findUnique({
+          where: { id: Number(id) },
+        });
+        if (!currentStep) {
+          return {
+            content: [{ type: "text", text: `StepSpec no encontrado: ${id}` }],
+            isError: true,
+          };
+        }
+        if (!currentStep.sdr || currentStep.sdr.trim().length === 0) {
+          return {
+            content: [{
+              type: "text",
+              text: `No se puede cerrar el step #${currentStep.stepNumber}: StepSpec.sdr está vacío. Registra sabiduría SDR primero usando la acción "sdr".`
+            }],
+            isError: true,
+          };
+        }
         const endedStep = await prisma.stepSpec.update({
           where: { id: Number(id) },
           data: { status: "completed" },
@@ -73,6 +92,7 @@ export async function handler(args) {
         return {
           content: [{ type: "text", text: JSON.stringify(endedStep, null, 2) }],
         };
+      }
 
       case "sdr":
         await prisma.stepSpec.update({
