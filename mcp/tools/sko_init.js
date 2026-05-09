@@ -1,8 +1,10 @@
 import prisma from "@sko/prisma/lib/prisma.js";
+import fs from "fs/promises";
+import path from "path";
 
 export const definition = {
   name: "sko_init",
-  description: "Carga el contexto inicial del proyecto (ADN y último resumen narrativo).",
+  description: "Carga el contexto inicial del proyecto (ADN y último resumen narrativo). Asegura la existencia de .sko-specs.",
   inputSchema: {
     type: "object",
     properties: {
@@ -16,7 +18,7 @@ export async function handler(args) {
   const { project } = args;
 
   try {
-    const p = await prisma.project.findFirst({
+    let p = await prisma.project.findFirst({
       where: {
         OR: [{ uuid: project }, { name: project }]
       },
@@ -29,9 +31,23 @@ export async function handler(args) {
     });
 
     if (!p) {
-      return {
-        content: [{ type: "text", text: `Proyecto "${project}" no encontrado en la base de datos.` }]
-      };
+      // Mandarlo a crear si no existe (ADN inicial vacío)
+      p = await prisma.project.create({
+        data: {
+          name: project,
+          stack: "Por definir",
+          devops: "Por definir"
+        },
+        include: { summaries: true }
+      });
+    }
+
+    // Asegurar carpeta .sko-specs
+    const specsDir = path.join(process.cwd(), ".sko-specs");
+    try {
+      await fs.access(specsDir);
+    } catch {
+      await fs.mkdir(specsDir, { recursive: true });
     }
 
     // ADN: stack + devops
@@ -48,11 +64,11 @@ export async function handler(args) {
       if (lastSummary.tags) {
         narrativo += `\nTags: ${lastSummary.tags}`;
       }
-      // sdrIds se omite intencionalmente (metadato técnico oculto)
     }
 
     const output = `--- CONTEXTO DE INICIO RÁPIDO (${p.name}) ---
 🧬 ADN: ${adn}
+📂 Carpeta .sko-specs verificada/creada.
 
 📝 ÚLTIMO RESUMEN:
 ${narrativo}`;

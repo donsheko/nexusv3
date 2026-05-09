@@ -1,0 +1,42 @@
+---
+name: sko-blueprint-template
+description: Estructura estándar para la creación declarativa de misiones (Specs) y pasos (Steps) vía Markdown.
+---
+
+# 📝 Blueprint de Misión: [TITULO_DE_LA_MISION]
+
+Este archivo es el Blueprint oficial de la misión. El contenido dentro de los bloques etiquetados será parseado e insertado en la base de datos.
+
+## 📑 [SPEC_HEADER]
+- **PROJECT_ID**: [UUID_DEL_PROYECTO]
+- **TITLE**: [TITULO_DESCRIPTIVO]
+- **CONTEXT**: 
+> [HISTORIA_DE_USUARIO_Y_ASUNCIONES_VALIDADAS]
+
+---
+
+## 🛠️ [PLAN_DE_EJECUCION]
+
+### [STEP:1]
+- **TITLE**: [TITULO_DEL_PASO]
+- **AGENT**: [@maestro | @arquitecto | @desarrollador | @disenador | @explorador | @consultor | @consolidador]
+- **DEPENDS_ON**: [ID_DE_PASO_PREVIO_O_NULL]
+- **CONTEXT**: 
+> [ARCHIVOS_INVOLUCRADOS_Y_RUTAS]
+- **META**: 
+> [INSTRUCCIONES_TECNICAS_DETALLADAS_Y_LOGICA]
+
+---
+
+### [STEP:2]
+- **TITLE**: [TITULO_DEL_PASO]
+- **AGENT**: [@desarrollador]
+- **DEPENDS_ON**: 1
+- **CONTEXT**: 
+> [ARCHIVOS_INVOLUCRADOS]
+- **META**: 
+> [INSTRUCCIONES]
+
+---
+
+## 🏁 [FIN_DEL_BLUEPRINT]

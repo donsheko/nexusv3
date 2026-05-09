@@ -1,11 +1,12 @@
 import { z } from "zod";
 
 export const SpecSchema = z.object({
-  action: z.enum(["start", "get", "update", "complete", "sync"]),
+  action: z.enum(["start", "get", "update", "complete", "sync", "parse_spec"]),
   id: z.number().optional(),
   title: z.string().optional(),
   projectId: z.string().optional(),
   context: z.string().optional(),
+  filePath: z.string().optional(),
   stepsCount: z.number().optional(),
   currentStep: z.number().optional(),
   percentage: z.number().optional(),

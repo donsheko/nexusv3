@@ -5,10 +5,9 @@ agent: consolidador
 
 ## Herramientas de Consolidación
 - **Obtener Datos Misión**: `sko_spec({ action: "get", id: $1 })`
-- **Obtener Aprendizajes**: `sko_step({ action: "get_learnings", specId: $1 })`
-- **Registrar Sabiduría Global**: `sko_sdr({ action: "add", project: "UUID", data: "JSON_Estructurado" })`
-- **Actualizar Memoria Atómica**: `sko_memory({ action: "commit", project: "UUID", type: "insight", content: "Resumen_Técnico", tags: "tags" })`
-- **Cierre de Ciclo**: `sko_spec({ action: "complete", id: $1 })`
+- **Obtener Aprendizajes**: `sko_consolidator({ specId: $1 })`
+- **Consolidar Resumen**: `sko_sdr({ action: "consolidate", project: "UUID", content: "Resumen_Consolidado", tags: "tags" })`
+- **Cierre de Consolidación**: El Consolidador no cierra la Spec, delega esta acción al `@Maestro`.
 
 ## Protocolo de Síntesis Técnica
 
@@ -18,5 +17,5 @@ agent: consolidador
     - **Qué Pasó**: Contexto del reto.
     - **Qué se Aprendió**: Lección técnica destilada.
     - **Ejemplos/Contraejemplos**: Fragmentos de código que ilustren la lección.
-4.  **Higiene de Memoria**: Actualizar el Índice de Sabiduría Atómica (`sko_memory`) para que futuras misiones puedan encontrar este conocimiento rápidamente.
-5.  **Finalización de Misión**: Marcar la misión como oficialmente completada usando `sko_spec(complete)`.
+4.  **Higiene de Memoria**: Actualizar el Índice de Sabiduría Atómica (`sko_sdr`) para que futuras misiones puedan encontrar este conocimiento rápidamente.
+5.  **Cierre de Consolidación**: Notificar al `@Maestro` que la sabiduría ha sido integrada. El control regresa al Maestro para la validación final con el usuario.

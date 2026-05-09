@@ -1,5 +1,7 @@
 import prisma from "@sko/prisma/lib/prisma.js";
 import { SpecSchema } from "../../prisma/schemas/index.js";
+import fs from "fs/promises";
+import path from "path";
 
 /**
  * Actualiza los contadores y el porcentaje de una Spec basándose en sus Steps
@@ -38,9 +40,10 @@ export const definition = {
     properties: {
       action: {
         type: "string",
-        enum: ["start", "get", "update", "complete", "sync"],
+        enum: ["start", "get", "update", "complete", "sync", "parse_spec"],
       },
       id: { type: "number" },
+      filePath: { type: "string" },
       title: { type: "string" },
       projectId: { type: "string" },
       context: { type: "string" },
@@ -190,6 +193,94 @@ export async function handler(args) {
         return {
           content: [{ type: "text", text: JSON.stringify(completedSpec, null, 2) }],
         };
+
+      case "parse_spec": {
+        const { filePath } = validated;
+        if (!filePath) {
+          return { content: [{ type: "text", text: "Error: Se requiere filePath para parse_spec." }], isError: true };
+        }
+
+        const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+        const fileContent = await fs.readFile(absolutePath, "utf-8");
+
+        // 1. Parsear Header
+        const specMatch = fileContent.match(/\[SPEC_HEADER\]([\s\S]*?)(?=---|\n##)/);
+        if (!specMatch) throw new Error("No se encontró el bloque [SPEC_HEADER]");
+        
+        const headerText = specMatch[1];
+        const projectId = headerText.match(/PROJECT_ID\*\*:\s*([^\n]+)/)?.[1]?.trim();
+        const title = headerText.match(/TITLE\*\*:\s*([^\n]+)/)?.[1]?.trim();
+        const contextMatch = headerText.match(/CONTEXT\*\*:\s*\n?>([\s\S]*)/);
+        const context = contextMatch ? contextMatch[1].trim() : "";
+
+        if (!projectId || !title) throw new Error("PROJECT_ID y TITLE son obligatorios en el Blueprint.");
+
+        // 2. Parsear Steps
+        const stepsData = [];
+        const stepBlocks = fileContent.split("### [STEP:").slice(1);
+        
+        for (const block of stepBlocks) {
+          const stepNumber = parseInt(block.split("]")[0]);
+          const sTitle = block.match(/- \*\*TITLE\*\*:\s*([^\n]+)/)?.[1]?.trim();
+          const sDependsOnStr = block.match(/- \*\*DEPENDS_ON\*\*:\s*([^\n]+)/)?.[1]?.trim();
+          const sDependsOn = (sDependsOnStr && sDependsOnStr !== "null") ? parseInt(sDependsOnStr) : null;
+          
+          const sContextMatch = block.match(/- \*\*CONTEXT\*\*:\s*\n?>([\s\S]*?)(?=- \*\*META\*\*|$)/);
+          const sMetaMatch = block.match(/- \*\*META\*\*:\s*\n?>([\s\S]*?)(?=---|$)/);
+          
+          stepsData.push({
+            stepNumber,
+            title: sTitle || `Paso ${stepNumber}`,
+            dependsOn: sDependsOn,
+            context: sContextMatch ? sContextMatch[1].trim() : "",
+            meta: sMetaMatch ? sMetaMatch[1].trim() : ""
+          });
+        }
+
+        // 3. Inserción en DB (Transacción)
+        const result = await prisma.$transaction(async (tx) => {
+          const newSpec = await tx.spec.create({
+            data: {
+              projectId,
+              title,
+              context,
+              stepsCount: stepsData.length,
+              currentStep: 0,
+              percentage: 0,
+              status: "in_progress",
+            }
+          });
+
+          const createdSteps = [];
+          const stepMap = new Map(); // stepNumber -> id real
+
+          for (const s of stepsData) {
+            const dependsId = s.dependsOn ? stepMap.get(s.dependsOn) : null;
+            const step = await tx.stepSpec.create({
+              data: {
+                specId: newSpec.id,
+                stepNumber: s.stepNumber,
+                title: s.title,
+                meta: s.meta,
+                context: s.context,
+                status: "pending",
+                dependsId: dependsId || null
+              }
+            });
+            stepMap.set(s.stepNumber, step.id);
+            createdSteps.push(step);
+          }
+
+          return { spec: newSpec, steps: createdSteps };
+        });
+
+        return {
+          content: [{ 
+            type: "text", 
+            text: `✅ Blueprint procesado exitosamente.\nSpec ID: ${result.spec.id}\nSteps creados: ${result.steps.length}\n\nDatos para delegación:\n${JSON.stringify(result, null, 2)}` 
+          }]
+        };
+      }
 
       case "sync":
         const synced = await syncSpecProgress(id);

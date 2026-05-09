@@ -3,21 +3,19 @@ description: Inicializa una nueva misión en Sko-Nexus capturando la necesidad d
 agent: maestro
 ---
 
-Carga el manual maestro de orquestación desde `~/.config/opencode/skills/sko-guia-orquestacion/SKILL.md` para entender el ciclo de vida completo de la misión.
+Carga los manuales de operación antes de iniciar:
+1. `~/.config/opencode/skills/sko-guia-orquestacion/SKILL.md` (Orquestación v3)
+2. `~/.config/opencode/skills/sko-blueprint-template/SKILL.md` (Formato Blueprint)
 
-## Herramientas de Misión
-- **Iniciar Spec**: `sko_spec({ action: "start", title: "Título_Misión", projectId: "UUID", context: "Historia_Usuario" })`
-
-## Flujo de Especificación (Protocolo v3)
+## Flujo de Especificación (Protocolo v3.3 - Blueprint Mode)
 
 1.  **Captura de Necesidad**: Solicitar al usuario su historia de usuario o requerimiento técnico para comprender el contexto.
 2.  **Mapeo de Asunciones**: Identificar "puntos ciegos" (funcionales o técnicos) y generar una lista de asunciones necesarias para proceder.
 3.  **Loop de Validación**:
     - Presentar la lista de asunciones numerada.
     - El usuario indica qué números desea refinar o cambiar.
-    - Realizar preguntas una a una para cada asunción rechazada:
-        - Mostrar **Barra de Progreso** del refinamiento.
-        - Ofrecer **4 opciones sugeridas**.
-        - Ofrecer una **5ta opción ("Otra")** para entrada libre.
-4.  **Registro SSOT**: Una vez consolidado, registrar la misión usando `sko_spec(action: "start")`.
-5.  **Delegación de Análisis**: Invocar al `@Arquitecto` mediante el comando `/sko-analyze $spec_id` para iniciar la fase de planificación.
+    - Realizar preguntas una a una para cada asunción rechazada hasta consolidar la base de la misión.
+4.  **Creación del Blueprint**: Una vez definida la misión, crea manualmente el archivo `.md` dentro de la carpeta `.sko-specs/`. 
+    - **Nombre de archivo**: `YYYY-MM-DD_nombre-mision.md` (donde `nombre-mision` son 1-2 palabras clave descriptivas).
+    - **Plantilla**: Utilizar la estructura de la skill `sko-blueprint-template`.
+5.  **Delegación de Diseño**: Invocar al `@Arquitecto` mediante el comando `/sko-analyze` indicando la **ruta relativa completa** del archivo generado (ej: `.sko-specs/2024-05-10_fix-db.md`).
