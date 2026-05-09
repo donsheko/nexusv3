@@ -1,7 +1,7 @@
-const { z } = require("zod");
+import { z } from "zod";
 
-const SpecSchema = z.object({
-  action: z.enum(["start", "get", "update", "complete"]),
+export const SpecSchema = z.object({
+  action: z.enum(["start", "get", "update", "complete", "sync"]),
   id: z.number().optional(),
   title: z.string().optional(),
   projectId: z.string().optional(),
@@ -12,7 +12,7 @@ const SpecSchema = z.object({
   status: z.enum(["pending", "in_progress", "completed", "failed"]).optional()
 });
 
-const StepSchema = z.object({
+export const StepSchema = z.object({
   action: z.enum(["create", "get", "next", "end", "sdr", "heartbeat"]),
   id: z.number().optional(),
   specId: z.number().optional(),
@@ -25,7 +25,7 @@ const StepSchema = z.object({
   data: z.string().optional() // Usado para SDR o Heartbeat (Plano)
 });
 
-const ProjectSchema = z.object({
+export const ProjectSchema = z.object({
   action: z.enum(["get", "upsert"]),
   project: z.string(),
   name: z.string().optional(),
@@ -33,7 +33,7 @@ const ProjectSchema = z.object({
   devops: z.string().optional()
 });
 
-const AuditSchema = z.object({
+export const AuditSchema = z.object({
   action: z.enum(["create", "get", "fix"]),
   id: z.number().optional(),
   stepId: z.number().optional(),
@@ -41,10 +41,3 @@ const AuditSchema = z.object({
   issuesFound: z.string().optional(),
   fixPlan: z.string().optional(),
 });
-
-module.exports = {
-  SpecSchema,
-  StepSchema,
-  ProjectSchema,
-  AuditSchema
-};

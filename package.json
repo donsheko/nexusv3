@@ -5,16 +5,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:webapp": "npm run dev --workspace=webapp",
-    "build:webapp": "npm run build --workspace=webapp",
-    "start:webapp": "npm run start --workspace=webapp",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "sko": "node bin/sko.js"
   },
   "workspaces": [
-    "webapp",
     "mcp",
     "prisma"
   ],

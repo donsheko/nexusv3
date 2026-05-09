@@ -3,18 +3,20 @@
  * Powered by Vesper
  */
 
-const fs = require("fs");
-const path = require("path");
-const {Server} = require("@modelcontextprotocol/sdk/server/index.js");
-const {
-  StdioServerTransport,
-} = require("@modelcontextprotocol/sdk/server/stdio.js");
-const {
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   ErrorCode,
   McpError,
-} = require("@modelcontextprotocol/sdk/types.js");
+} from "@modelcontextprotocol/sdk/types.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const server = new Server(
   {
@@ -29,7 +31,7 @@ const server = new Server(
 );
 
 /**
- * Dinamically load tools from ./tools/
+ * Dynamically load tools from ./tools/
  */
 const tools = {};
 const toolsPath = path.join(__dirname, "tools");
@@ -38,8 +40,10 @@ if (fs.existsSync(toolsPath)) {
   const toolFiles = fs
     .readdirSync(toolsPath)
     .filter((file) => file.endsWith(".js"));
+  
   for (const file of toolFiles) {
-    const tool = require(path.join(toolsPath, file));
+    const toolModule = await import(path.join(toolsPath, file));
+    const tool = toolModule.default || toolModule;
     if (tool.definition && tool.handler) {
       tools[tool.definition.name] = tool;
     }
@@ -65,7 +69,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return await tool.handler(request.params.arguments);
   } catch (error) {
     return {
-      content: [{type: "text", text: `Error: ${error.message}`}],
+      content: [{ type: "text", text: `Error: ${error.message}` }],
       isError: true,
     };
   }
