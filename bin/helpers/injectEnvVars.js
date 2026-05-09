@@ -38,6 +38,13 @@ export async function injectEnvVars(envVars) {
       }
     }
 
+    // Inyectar alias global 'sko'
+    const skoAlias = `alias sko='node ${join(process.cwd(), 'bin', 'sko.js')}'`;
+    if (!content.includes("alias sko=")) {
+      content += `\n# Sko-Nexus CLI Alias\n${skoAlias}\n`;
+      modified = true;
+    }
+
     if (modified) {
       await writeFile(targetFile, content, 'utf-8');
     }

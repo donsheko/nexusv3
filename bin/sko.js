@@ -21,10 +21,12 @@ import Banner from './ui/Banner.js';
 import AgentSelector from './ui/AgentSelector.js';
 import InjectionFlow from './ui/InjectionFlow.js';
 import Summary from './ui/Summary.js';
+import Dashboard from './ui/Dashboard.js';
 
 const PHASE = Object.freeze({
   BANNER: 'banner',
   MENU: 'menu',
+  DASHBOARD: 'dashboard',
   SYNCING: 'syncing',
   AUTODETECTING: 'autodetecting',
   SELECTING_FOR_INJECTION: 'selecting_for_injection',
@@ -80,6 +82,10 @@ function App() {
         setPhase(PHASE.ASSIGNING_MODELS);
         break;
 
+      case 'dashboard':
+        setPhase(PHASE.DASHBOARD);
+        break;
+
       case 'auth':
         setPhase(PHASE.EXPORTING_AUTH);
         const auth = await exportIdentity();
@@ -115,13 +121,14 @@ function App() {
         createElement(Select, {
           visibleOptionCount: 10,
           options: [
-            { label: '1. Sincronizar Cerebro (Skills & Agentes)', value: 'sync' },
-            { label: '2. Autodetectar Agentes Locales', value: 'detect' },
-            { label: '3. Inyectar Maestro y MCP a Agentes Locales', value: 'inject' },
-            { label: '4. Detectar Modelos de Opencode', value: 'detect_models' },
-            { label: '5. Asignar Modelos a Agentes', value: 'assign_models' },
-            { label: '6. Exportar Identidad OpenCode (auth.json)', value: 'auth' },
-            { label: '7. Salir', value: 'exit' }
+            { label: '1. Dashboard (Monitor & Más)', value: 'dashboard' },
+            { label: '2. Sincronizar Cerebro (Skills & Agentes)', value: 'sync' },
+            { label: '3. Autodetectar Agentes Locales', value: 'detect' },
+            { label: '4. Inyectar Maestro y MCP a Agentes Locales', value: 'inject' },
+            { label: '5. Detectar Modelos de Opencode', value: 'detect_models' },
+            { label: '6. Asignar Modelos a Agentes', value: 'assign_models' },
+            { label: '7. Exportar Identidad OpenCode (auth.json)', value: 'auth' },
+            { label: '8. Salir', value: 'exit' }
           ],
           onChange: handleMenuSelect
         })
@@ -148,6 +155,10 @@ function App() {
       agents,
       selected: selectedAgents,
       onComplete: handleInjectionComplete
+    }),
+
+    phase === PHASE.DASHBOARD && createElement(Dashboard, {
+      onBack: () => setPhase(PHASE.MENU)
     }),
 
     phase === PHASE.ASSIGNING_MODELS && createElement(Box, { flexDirection: 'column' },
