@@ -1,18 +1,15 @@
 ---
 name: sko-blueprint-template
-description: Estructura estándar para la creación declarativa de misiones (Specs) y pasos (Steps) vía Markdown.
+description: Estructura estándar para la creación declarativa de misiones (Specs) y pasos (Steps) vía Markdown con Frontmatter.
 ---
 
 # 📝 Blueprint de Misión: [TITULO_DE_LA_MISION]
 
-Este archivo es el Blueprint oficial de la misión. El contenido dentro de los bloques etiquetados será parseado e insertado en la base de datos.
-
-## 📑 [SPEC_HEADER]
-- **PROJECT_ID**: [UUID_DEL_PROYECTO]
-- **TITLE**: [TITULO_DESCRIPTIVO]
-- **CONTEXT**: 
-> [HISTORIA_DE_USUARIO_Y_ASUNCIONES_VALIDADAS]
-
+---
+project_id: [UUID_DEL_PROYECTO]
+title: [TITULO_DESCRIPTIVO]
+context: |
+  [HISTORIA_DE_USUARIO_Y_ASUNCIONES_VALIDADAS]
 ---
 
 ## 🛠️ [PLAN_DE_EJECUCION]
@@ -40,3 +37,4 @@ Este archivo es el Blueprint oficial de la misión. El contenido dentro de los b
 ---
 
 ## 🏁 [FIN_DEL_BLUEPRINT]
+

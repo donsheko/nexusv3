@@ -2,6 +2,7 @@ import prisma from "@sko/prisma/lib/prisma.js";
 import { SpecSchema } from "../../prisma/schemas/index.js";
 import fs from "fs/promises";
 import path from "path";
+import { specMdToJsonParse } from "../helpers/specMdToJsonParse.js";
 
 /**
  * Actualiza los contadores y el porcentaje de una Spec basándose en sus Steps
@@ -196,156 +197,60 @@ export async function handler(args) {
 
       case "parse_spec": {
         const { filePath } = validated;
-        if (!filePath) {
-          return { content: [{ type: "text", text: "Error: Se requiere filePath para parse_spec." }], isError: true };
-        }
+        if (!filePath) return { content: [{ type: "text", text: "Error: Se requiere filePath." }], isError: true };
 
-        // 0. Validación de Path (Seguridad)
+        // 0. Seguridad de Path
         const specsDir = path.join(process.cwd(), ".sko-specs");
         const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
-        
         if (!absolutePath.startsWith(specsDir)) {
-           return { 
-             content: [{ type: "text", text: `Error de Seguridad: El filePath debe estar contenido exclusivamente en '.sko-specs/'. Recibido: ${filePath}` }], 
-             isError: true 
-           };
+           return { content: [{ type: "text", text: `Error: El path debe estar en .sko-specs/` }], isError: true };
         }
 
+        // 1. Leer y Parsear Blueprint
         let fileContent;
         try {
           fileContent = await fs.readFile(absolutePath, "utf-8");
         } catch (e) {
-          return { content: [{ type: "text", text: `Error: No se pudo leer el archivo en ${absolutePath}. Asegúrate de que exista.` }], isError: true };
+          return { content: [{ type: "text", text: `Error: No se pudo leer ${absolutePath}` }], isError: true };
         }
 
-        // 1. Parsear Header con Regex Robustas
-        const specHeaderMatch = fileContent.match(/\[SPEC_HEADER\]([\s\S]*?)(?=---|\n##|###)/i);
-        if (!specHeaderMatch) {
-          return { content: [{ type: "text", text: "Error de Formato: No se encontró el bloque obligatorio [SPEC_HEADER]." }], isError: true };
-        }
-        
-        const headerText = specHeaderMatch[1];
-        
-        const getField = (text, field) => {
-          const regex = new RegExp(`${field}(?:\\*\\*|)\\s*:\\s*([^\\n>]+)`, "i");
-          return text.match(regex)?.[1]?.trim();
-        };
-
-        const getBlockquote = (text, field) => {
-          const regex = new RegExp(`${field}(?:\\*\\*|)\\s*:\\s*\\n?\\s*>([\\s\\S]*?)(?=\\n\\s*-|\\n\\s*#|---|$|###)`, "i");
-          const match = text.match(regex);
-          if (!match) return "";
-          return match[1]
-            .split("\n")
-            .map(line => line.trim().replace(/^>\s?/, ""))
-            .join("\n")
-            .trim();
-        };
-
-        let projectId = getField(headerText, "PROJECT_ID");
-        const title = getField(headerText, "TITLE");
-        const context = getBlockquote(headerText, "CONTEXT");
-
-        if (!projectId || !title) {
-          return { content: [{ type: "text", text: "Error de Validación: PROJECT_ID y TITLE son obligatorios en el bloque [SPEC_HEADER]. Asegúrate de que no tengan el prefijo '>'." }], isError: true };
+        let blueprint;
+        try {
+          blueprint = await specMdToJsonParse(fileContent);
+        } catch (e) {
+          return { content: [{ type: "text", text: `Error de Formato: ${e.message}` }], isError: true };
         }
 
-        // 1.1 Verificar existencia del Proyecto
+        const { projectId, title, context, steps } = blueprint;
+
+        // 2. Validar Existencia del Proyecto
         const project = await prisma.project.findFirst({
-          where: {
-            OR: [
-              { uuid: projectId },
-              { name: projectId }
-            ]
-          }
+          where: { OR: [{ uuid: projectId }, { name: projectId }] }
         });
 
         if (!project) {
-          return { content: [{ type: "text", text: `Error de Integridad: El Proyecto '${projectId}' no existe en la base de datos. Verifica el nombre o UUID.` }], isError: true };
-        }
-        projectId = project.uuid; // Normalizar a UUID
-
-        // 2. Parsear Steps
-        const stepsData = [];
-        const stepBlocks = fileContent.split(/###\s*\[STEP:/i).slice(1);
-        
-        if (stepBlocks.length === 0) {
-          return { content: [{ type: "text", text: "Error de Formato: No se encontraron bloques de pasos (### [STEP: N])." }], isError: true };
+          return { content: [{ type: "text", text: `Error: El Proyecto '${projectId}' no existe.` }], isError: true };
         }
 
-        const seenStepNumbers = new Set();
-        
-        for (const block of stepBlocks) {
-          const stepHeaderMatch = block.match(/^\s*(\d+)\s*\]/);
-          if (!stepHeaderMatch) {
-            return { content: [{ type: "text", text: `Error en el Parser: No se pudo identificar el número de paso en '### [STEP:${block.substring(0,10)}...'` }], isError: true };
-          }
-          const stepNumber = parseInt(stepHeaderMatch[1]);
-
-          if (seenStepNumbers.has(stepNumber)) {
-            return { content: [{ type: "text", text: `Error de Consistencia: El Paso #${stepNumber} está duplicado en el Blueprint.` }], isError: true };
-          }
-          seenStepNumbers.add(stepNumber);
-
-          const sTitle = getField(block, "TITLE");
-          const sDependsOnStr = getField(block, "DEPENDS_ON");
-          const sDependsOn = (sDependsOnStr && sDependsOnStr.toLowerCase() !== "null") ? parseInt(sDependsOnStr) : null;
-          
-          const sContext = getBlockquote(block, "CONTEXT");
-          const sMeta = getBlockquote(block, "META");
-          
-          if (!sTitle) {
-            return { content: [{ type: "text", text: `Error en el Paso #${stepNumber}: El campo TITLE es obligatorio y no debe empezar con '>'.` }], isError: true };
-          }
-
-          stepsData.push({
-            stepNumber,
-            title: sTitle,
-            dependsOn: sDependsOn,
-            context: sContext,
-            meta: sMeta
-          });
-        }
-
-        // 2.1 Validar Coherencia de Dependencias
-        for (const s of stepsData) {
-          if (s.dependsOn !== null) {
-            if (isNaN(s.dependsOn)) {
-               return { content: [{ type: "text", text: `Error en el Paso #${s.stepNumber}: La dependencia debe ser un número o 'null'.` }], isError: true };
-            }
-            if (s.dependsOn === s.stepNumber) {
-              return { content: [{ type: "text", text: `Error de Lógica: El Paso #${s.stepNumber} no puede depender de sí mismo.` }], isError: true };
-            }
-            if (!seenStepNumbers.has(s.dependsOn)) {
-              return { content: [{ type: "text", text: `Error de Referencia: El Paso #${s.stepNumber} depende del Paso #${s.dependsOn}, que no existe en el Blueprint.` }], isError: true };
-            }
-          }
-        }
-
-        // 3. Inserción en DB (Transacción)
+        // 3. Persistencia en DB
         try {
           const result = await prisma.$transaction(async (tx) => {
             const newSpec = await tx.spec.create({
               data: {
-                projectId,
+                projectId: project.uuid,
                 title,
                 context,
-                stepsCount: stepsData.length,
+                stepsCount: steps.length,
                 currentStep: 0,
                 percentage: 0,
                 status: "in_progress",
               }
             });
 
+            const stepMap = new Map();
             const createdSteps = [];
-            const stepMap = new Map(); // stepNumber -> id real
 
-            // Ordenar steps por número para asegurar que las dependencias se procesen correctamente si son secuenciales
-            // Aunque el Map ayuda, si hay dependencias hacia adelante esto fallará. 
-            // El protocolo v3 asume que dependen de pasos anteriores o se maneja con el stepMap.
-            
-            for (const s of stepsData.sort((a, b) => a.stepNumber - b.stepNumber)) {
-              const dependsId = s.dependsOn ? stepMap.get(s.dependsOn) : null;
+            for (const s of steps.sort((a, b) => a.stepNumber - b.stepNumber)) {
               const step = await tx.stepSpec.create({
                 data: {
                   specId: newSpec.id,
@@ -354,7 +259,7 @@ export async function handler(args) {
                   meta: s.meta,
                   context: s.context,
                   status: "pending",
-                  dependsId: dependsId || null
+                  dependsId: s.dependsOn ? stepMap.get(s.dependsOn) : null
                 }
               });
               stepMap.set(s.stepNumber, step.id);
@@ -367,11 +272,11 @@ export async function handler(args) {
           return {
             content: [{ 
               type: "text", 
-              text: `✅ Blueprint procesado exitosamente.\nSpec ID: ${result.spec.id}\nSteps creados: ${result.steps.length}\nProyecto vinculante: ${project.name} (${projectId})` 
+              text: `✅ Blueprint procesado.\nSpec ID: ${result.spec.id}\nSteps creados: ${result.steps.length}\nProyecto: ${project.name}` 
             }]
           };
         } catch (error) {
-           return { content: [{ type: "text", text: `Error en Transacción DB: ${error.message}` }], isError: true };
+           return { content: [{ type: "text", text: `Error DB: ${error.message}` }], isError: true };
         }
       }
 
