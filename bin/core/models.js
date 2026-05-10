@@ -4,8 +4,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { homedir } from 'os';
+import { provisionIdentity } from './identity.js';
 
 const execAsync = promisify(exec);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,7 +19,11 @@ const LOCAL_OPENCODE_AGENTS_DIR = path.join(homedir(), '.config', 'opencode', 'a
  */
 export async function detectModels() {
   try {
+    // Intentar inyectar identidad antes de detectar (v2 parity)
+    await provisionIdentity();
+
     const { stdout } = await execAsync('opencode models', { timeout: 10000 });
+
     const lines = stdout.split(/\r?\n/).filter(line => line.trim() && line.includes('/'));
     
     const modelsByProvider = {};

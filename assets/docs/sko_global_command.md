@@ -23,14 +23,16 @@ Orquesta la sincronización en dos niveles:
 Escanea el sistema operativo en busca de rutas estándar de agentes AI (`.config/opencode`, `.claude`, `.gemini`, etc.). Los resultados se guardan en `agents_local.json` (ignorado por git) para uso de la CLI.
 
 ### 4. Inyectar Maestro y MCP a Agentes Locales
-El proceso "corazón" de la instalación. Ejecuta 4 pasos secuenciales para cada agente elegido:
+El proceso "corazón" de la instalación. Ejecuta 3 pasos secuenciales para cada agente elegido:
 1.  **Vincular MCP**: Registra el servidor `sko-brain` en la configuración del agente.
-2.  **Provisionar Identidad**: Copia el archivo `auth.json` del proyecto a la ruta global del agente para evitar logins repetitivos.
-3.  **Inyectar Maestro**: Ensambla el ADN modular y lo escribe en el archivo de instrucciones primario del agente.
-4.  **Inyectar Subagentes & Skills**: Copia físicamente los ejecutores (`@builder`, etc.) y el arsenal técnico (Skills) al disco local del agente.
+2.  **Inyectar Maestro**: Ensambla el ADN modular y lo escribe en el archivo de instrucciones primario del agente. En este paso también se inyecta la **Soberanía de Sistema Operativo** (Alias `sko` y variables `OPENCODE_DISABLE_CLAUDE_CODE`) en el `.bashrc` / `.zshrc`.
+3.  **Inyectar Subagentes & Skills**: Copia físicamente los ejecutores (`@builder`, etc.) y el arsenal técnico (Skills) al disco local del agente.
 
 ### 5. Detectar Modelos de Opencode
-Consulta directamente a la CLI de OpenCode para obtener la lista actualizada de modelos y proveedores disponibles. El resultado se cachea localmente para alimentar el selector de modelos.
+Consulta directamente a la CLI de OpenCode para obtener la lista actualizada de modelos y proveedores disponibles. 
+*   **Identidad**: Antes de la detección, este comando inyecta automáticamente el `auth.json` local (si existe) en la ruta global de OpenCode, evitando que tengas que hacer login manualmente en nuevas máquinas.
+*   **Caché**: El resultado se guarda en `opencode_models.json` para alimentar el selector de modelos.
+
 
 ### 6. Asignar Modelos a Agentes
 Permite vincular un modelo específico (ej: `google/gemini-2.0-flash`) a un agente local específico. Esta acción **modifica físicamente** el frontmatter del archivo `.md` del agente en la carpeta del usuario, no en el repositorio.
