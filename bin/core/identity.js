@@ -74,19 +74,27 @@ export async function provisionIdentity() {
 }
 
 /**
- * Exporta el contenido del auth.json global.
+ * Exporta la identidad global a un archivo auth.json local en el proyecto.
+ * Permite sincronizar la identidad entre máquinas mediante el repo.
  */
 export async function exportIdentity() {
   const result = { success: false };
+  const destPath = join(process.cwd(), AUTH_FILENAME);
 
   try {
     await access(GLOBAL_AUTH_PATH, constants.F_OK);
     const content = await readFile(GLOBAL_AUTH_PATH, 'utf-8');
+    
+    // Crear/Sobrescribir archivo local
+    await writeFile(destPath, content, 'utf-8');
+    
     result.data = JSON.parse(content);
     result.success = true;
+    result.file = destPath;
   } catch (err) {
-    result.error = `Error al leer auth.json: ${err.message}`;
+    result.error = `Error al exportar identidad: ${err.message}`;
   }
 
   return result;
 }
+

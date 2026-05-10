@@ -22,6 +22,7 @@ import AgentSelector from './ui/AgentSelector.js';
 import InjectionFlow from './ui/InjectionFlow.js';
 import Dashboard from './ui/Dashboard.js';
 import Summary from './ui/Summary.js';
+import ModelSelector from './ui/ModelSelector.js';
 
 // ─── Definición de Fases ───────────────────────────────────────────────────
 const PHASE = Object.freeze({
@@ -131,7 +132,11 @@ function App() {
         case 'auth':
           setPhase(PHASE.EXPORTING_AUTH);
           const auth = await exportIdentity();
-          setStatusMessage(auth.success ? JSON.stringify(auth.data, null, 2) : '❌ No se encontró auth.json global.');
+          if (auth.success) {
+            setStatusMessage(`✅ Identidad exportada a: ${auth.file}\n\nAhora puedes subir este archivo al repo para sincronizar otras máquinas.`);
+          } else {
+            setStatusMessage(`❌ Error: ${auth.error}`);
+          }
           break;
 
         case 'exit':
@@ -217,15 +222,9 @@ function App() {
       onBack: () => setPhase(PHASE.MENU)
     }),
 
-    phase === PHASE.ASSIGNING_MODELS && createElement(Box, { flexDirection: 'column' },
-      createElement(Text, { color: 'yellow' }, '🏗️ Módulo de Asignación en construcción...'),
-      createElement(Box, { marginTop: 1 },
-        createElement(Select, {
-          options: [{ label: 'Volver', value: 'back' }],
-          onChange: () => setPhase(PHASE.MENU)
-        })
-      )
-    ),
+    phase === PHASE.ASSIGNING_MODELS && createElement(ModelSelector, {
+      onBack: () => setPhase(PHASE.MENU)
+    }),
 
     phase === PHASE.EXPORTING_AUTH && createElement(Box, { flexDirection: 'column' },
       createElement(Text, { color: 'yellow', bold: true }, '🔐 IDENTIDAD OPENCODE (auth.json)'),
