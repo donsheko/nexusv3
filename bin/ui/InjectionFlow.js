@@ -183,8 +183,21 @@ function InjectionFlow({ agents, selected, onComplete }) {
     async function run() {
       for (const agentName of selected) {
         if (cancelled.current) break;
+        
+        // Safety: Skip if agentName is invalid
+        if (!agentName || typeof agentName !== 'string') {
+          console.error(`Invalid agent name: ${agentName}`);
+          continue;
+        }
 
         const agentInfo = agents[agentName];
+        
+        // Safety: Skip if agent not found
+        if (!agentInfo) {
+          console.error(`Agent not found in agents object: ${agentName}`);
+          continue;
+        }
+        
         const agentPath = agentInfo?.path;
         const agentResults = { agent: agentName, steps: [] };
 

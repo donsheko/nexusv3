@@ -79,8 +79,11 @@ function AgentSelector({ agents, initialSelected, onSelect }) {
         options,
         defaultValues: initialSelected || [],
         onSubmit: (selected) => {
-          // selected es un array de objetos { label, value }
-          onSelect(selected.map((s) => s.value));
+          // selected puede ser array de objetos { label, value } o array de strings
+          const selectedValues = Array.isArray(selected) 
+            ? selected.map((s) => typeof s === 'object' ? s.value : s).filter(Boolean)
+            : [];
+          onSelect(selectedValues);
         },
       }),
     ),
