@@ -6,7 +6,7 @@
  * @module core/injector
  */
 
-import { writeFile, mkdir, readdir, readFile, copyFile, stat } from "fs/promises";
+import { writeFile, mkdir, readdir, readFile, copyFile, stat, rename } from "fs/promises";
 import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -19,11 +19,98 @@ import { detectFormat } from "../helpers/detectFormat.js";
 import { readConfig } from "../helpers/readConfig.js";
 import { getMCPConfigPath } from "../helpers/getMCPConfigPath.js";
 import { injectEnvVars } from "../helpers/injectEnvVars.js";
+import { withLock } from "../helpers/fileLock.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = join(__dirname, "..", "..");
 const ASSETS_DIR = join(ROOT_DIR, "assets");
 const MCP_SERVER_PATH = join(ROOT_DIR, "mcp", "index.js");
+
+/**
+ * Validaciones de seguridad pre-ejecución
+ */
+async function validateMcpServerPath() {
+  if (!(await pathExists(MCP_SERVER_PATH))) {
+    throw new Error(
+      `MCP server not found at ${MCP_SERVER_PATH}. ` +
+      `Cannot inject MCP configuration without the server binary.`
+    );
+  }
+}
+
+/**
+ * Escribe config de forma segura (atomic write con backup)
+ */
+async function writeConfigSafely(configPath, config) {
+  // 1. Crear backup si el archivo existe
+  if (await pathExists(configPath)) {
+    const backupPath = configPath + '.backup';
+    try {
+      await copyFile(configPath, backupPath);
+    } catch (err) {
+      // Si el backup falla, al menos intentamos continuar
+      console.warn(`Warning: Could not create backup of ${configPath}`);
+    }
+  }
+
+  // 2. Validar que config es JSON-serializable
+  try {
+    JSON.stringify(config);
+  } catch (err) {
+    throw new Error(`Config contains non-serializable values: ${err.message}`);
+  }
+
+  // 3. Escribir a archivo temporal primero
+  const tempPath = configPath + '.tmp';
+  const jsonContent = JSON.stringify(config, null, 2) + "\n";
+  await writeFile(tempPath, jsonContent, "utf-8");
+
+  // 4. Validar que el temp file se escribió correctamente
+  const written = await readFile(tempPath, "utf-8");
+  if (written !== jsonContent) {
+    throw new Error(`Config write verification failed - file content mismatch`);
+  }
+
+  // 5. Atomic rename (move temp to final)
+  await rename(tempPath, configPath);
+}
+
+/**
+ * Valida estructura de config MCP antes de modificar
+ */
+function validateMcpConfig(config, formatKey) {
+  if (!config[formatKey]) {
+    return; // No existe, será creada
+  }
+
+  if (typeof config[formatKey] !== "object" || Array.isArray(config[formatKey])) {
+    throw new Error(
+      `Config[${formatKey}] must be an object, but found ${typeof config[formatKey]}. ` +
+      `This suggests the config file may be corrupted or in an incompatible format.`
+    );
+  }
+}
+
+/**
+ * Valida array de plugins
+ */
+function validatePluginArray(plugins) {
+  if (!Array.isArray(plugins)) {
+    throw new Error(
+      `config.plugin must be an array, but found ${typeof plugins}. ` +
+      `Plugin configuration is corrupted.`
+    );
+  }
+
+  for (const plugin of plugins) {
+    if (typeof plugin !== "string") {
+      throw new Error(
+        `Plugin entry must be a string, but found ${typeof plugin}: ${plugin}. ` +
+        `Plugin configuration contains invalid entries.`
+      );
+    }
+  }
+}
 
 /**
  * 1. syncMaestro
@@ -115,10 +202,20 @@ export async function syncSubagents(agents) {
 /**
  * 3. syncMcp
  * Genera config MCP dinámica incluyendo plugins obligatorios.
+ * SEGURO: con validación, backup, atomic writes y locking
  */
 export async function syncMcp(agents) {
   const results = {};
   const MCP_SERVER_NAME = "sko-brain";
+
+  // Validar pre-requisitos
+  try {
+    await validateMcpServerPath();
+  } catch (err) {
+    return Object.fromEntries(
+      Object.keys(agents).map(id => [id, { success: false, error: err.message }])
+    );
+  }
 
   for (const [id, info] of Object.entries(agents)) {
     try {
@@ -126,28 +223,63 @@ export async function syncMcp(agents) {
       if (!profile) throw new Error(`Perfil no encontrado: ${id}`);
 
       const configPath = getMCPConfigPath(id, info.path);
-      const format = detectFormat(configPath);
-      const config = await readConfig(configPath);
 
-      if (id === 'opencode') {
-        const plugins = new Set(config.plugin || []);
-        profile.setup.requiredPlugins.forEach(p => plugins.add(p));
-        config.plugin = Array.from(plugins);
-      }
+      // SEGURO: Usar lock para evitar race conditions
+      const result = await withLock(configPath, async () => {
+        const format = detectFormat(configPath);
+        const config = await readConfig(configPath);
 
-      if (!config[format.key] || typeof config[format.key] !== "object") {
-        config[format.key] = {};
-      }
+        // Validar estructura del config antes de modificar
+        validateMcpConfig(config, format.key);
 
-      config[format.key][MCP_SERVER_NAME] = {
-        type: "local",
-        command: ["node", MCP_SERVER_PATH],
-        enabled: true,
-      };
+        // Inyectar plugins para OpenCode
+        if (id === 'opencode') {
+          // Validar que plugin sea array o no exista
+          if (config.plugin && !Array.isArray(config.plugin)) {
+            throw new Error(
+              `config.plugin is not an array. Expected array, got ${typeof config.plugin}`
+            );
+          }
 
-      await mkdir(dirname(configPath), { recursive: true });
-      await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
-      results[id] = { success: true, configPath };
+          const plugins = new Set(config.plugin || []);
+          profile.setup.requiredPlugins.forEach(p => {
+            if (typeof p !== "string") {
+              throw new Error(`Invalid plugin entry: ${p} (must be string)`);
+            }
+            plugins.add(p);
+          });
+          config.plugin = Array.from(plugins);
+
+          // Validar resultado
+          validatePluginArray(config.plugin);
+        }
+
+        // Crear o actualizar config[format.key]
+        if (!config[format.key]) {
+          config[format.key] = {};
+        } else if (typeof config[format.key] !== "object" || Array.isArray(config[format.key])) {
+          throw new Error(
+            `config[${format.key}] must be an object, but is ${typeof config[format.key]}`
+          );
+        }
+
+        // Inyectar configuración del servidor MCP
+        config[format.key][MCP_SERVER_NAME] = {
+          type: "local",
+          command: ["node", MCP_SERVER_PATH],
+          enabled: true,
+        };
+
+        // Crear directorio si no existe
+        await mkdir(dirname(configPath), { recursive: true });
+
+        // SEGURO: Escribir con backup y atomic rename
+        await writeConfigSafely(configPath, config);
+
+        return { success: true, configPath };
+      });
+
+      results[id] = result;
     } catch (err) {
       results[id] = { success: false, error: err.message };
     }
