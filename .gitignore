@@ -23,6 +23,7 @@ docker/mariadb/
 prueba.json
 
 #OpenCode Local Config
-openconde_models.json
-opencode_selections.json
+auth.json
+opencode_models.json
+opencode_selection.json
 agents_local.json
