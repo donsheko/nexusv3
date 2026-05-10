@@ -16,9 +16,9 @@ import { Box, Text, useInput, useApp } from 'ink';
 
 const STEP_LABELS = {
   mcp: '🔗 MCP',
-  identity: '🔑 Auth',
   maestro: '👑 ADN',
   subagents: '🤖 Sub',
+  skills: '⚙️ Skills',
 };
 
 // ─── Sub-componente: Fila de resultado de un agente ────────────────────────

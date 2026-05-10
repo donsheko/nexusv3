@@ -87,7 +87,7 @@ function App() {
 
   const handleBannerComplete = useCallback(() => setPhase(PHASE.MENU), []);
 
-  const handleMenuSelect = async (value) => {
+  const handleMenuSelect = useCallback(async (value) => {
     cleanupTimer();
     setStatusMessage('');
     
@@ -109,6 +109,7 @@ function App() {
           break;
 
         case 'inject':
+          setPhase(PHASE.AUTODETECTING);
           const currentAgents = await detectLocalAgents();
           setAgents(currentAgents);
           setPhase(PHASE.SELECTING_FOR_INJECTION);
@@ -147,7 +148,7 @@ function App() {
       setStatusMessage(`❌ Error Crítico: ${err.message}`);
       timerRef.current = setTimeout(() => setPhase(PHASE.MENU), 5000);
     }
-  };
+  }, [exit]);
 
   const handleInjectionComplete = (injectionResults) => {
     setResults(injectionResults || []);

@@ -23,7 +23,7 @@ import { join } from 'path';
 
 // ─── Módulos Core ──────────────────────────────────────────────────────────
 
-import { syncMaestro, syncSubagents, syncMcp } from '../core/injector.js';
+import { syncMaestro, syncSubagents, syncMcp, syncSkills } from '../core/injector.js';
 
 // ─── Configuración de Pasos ────────────────────────────────────────────────
 
@@ -31,6 +31,7 @@ const STEPS = [
   { id: 'mcp', icon: '🔗', label: 'Servidor MCP' },
   { id: 'maestro', icon: '👑', label: 'Maestro (ADN)' },
   { id: 'subagents', icon: '🤖', label: 'Subagentes' },
+  { id: 'skills', icon: '⚙️', label: 'Skills & Comandos' },
 ];
 
 
@@ -217,6 +218,11 @@ function InjectionFlow({ agents, selected, onComplete }) {
               }
               case 'subagents': {
                 const res = await syncSubagents({ [agentName]: agentInfo });
+                result = res[agentName];
+                break;
+              }
+              case 'skills': {
+                const res = await syncSkills({ [agentName]: agentInfo });
                 result = res[agentName];
                 break;
               }
