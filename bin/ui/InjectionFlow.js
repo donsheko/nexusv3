@@ -181,20 +181,23 @@ function InjectionFlow({ agents, selected, onComplete }) {
     allResults.current = [];
 
     async function run() {
-      for (const agentName of selected) {
+      // Defensive: filter out any undefined or invalid agents from selected array
+      const validSelected = selected.filter(s => s && typeof s === 'string');
+      
+      if (validSelected.length === 0) {
+        console.warn('No valid agents selected for injection');
+        onComplete([]);
+        return;
+      }
+
+      for (const agentName of validSelected) {
         if (cancelled.current) break;
-        
-        // Safety: Skip if agentName is invalid
-        if (!agentName || typeof agentName !== 'string') {
-          console.error(`Invalid agent name: ${agentName}`);
-          continue;
-        }
 
         const agentInfo = agents[agentName];
         
         // Safety: Skip if agent not found
         if (!agentInfo) {
-          console.error(`Agent not found in agents object: ${agentName}`);
+          console.error(`Agent not found: ${agentName}`);
           continue;
         }
         
