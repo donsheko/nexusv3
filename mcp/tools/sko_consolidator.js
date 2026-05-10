@@ -25,9 +25,6 @@ export async function handler(args) {
         },
         audits: {
           orderBy: { createdAt: "desc" }
-        },
-        sdrEntries: {
-          orderBy: { updatedAt: "desc" }
         }
       }
     });
@@ -39,16 +36,7 @@ export async function handler(args) {
       };
     }
 
-    // 2. Extraer todos los StepSpec.sdr (no nulos)
-    const sdrs = spec.steps
-      .filter((step) => step.sdr && step.sdr.trim().length > 0)
-      .map((step) => ({
-        stepNumber: step.stepNumber,
-        title: step.title,
-        sdr: step.sdr
-      }));
-
-    // 3. Armar respuesta
+    // 2. Armar respuesta
     const output = {
       spec: {
         id: spec.id,
@@ -69,7 +57,7 @@ export async function handler(args) {
         status: s.status,
         meta: s.meta,
         context: s.context,
-        sdr: s.sdr
+        sdr: s.sdr // Aprendizaje atómico del paso (Bitácora)
       })),
       audits: spec.audits.map((a) => ({
         id: a.id,
@@ -77,9 +65,7 @@ export async function handler(args) {
         issuesFound: a.issuesFound,
         fixPlan: a.fixPlan,
         fixed: a.fixed
-      })),
-      sdrEntries: spec.sdrEntries,
-      stepSdrs: sdrs
+      }))
     };
 
     return {

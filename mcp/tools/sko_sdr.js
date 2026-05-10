@@ -8,22 +8,35 @@ export const definition = {
     properties: {
       action: {
         type: "string",
-        enum: ["register_step", "consolidate", "search"]
+        enum: ["register_step", "register_wisdom", "consolidate", "search"]
       },
       project: { type: "string", description: "UUID del proyecto." },
-      specId: { type: "number", description: "ID de la Spec (para register_step)." },
+      specId: { type: "number", description: "ID de la Spec (para register_step o register_wisdom)." },
       stepNumber: { type: "number", description: "Número del step (para register_step)." },
       content: { type: "string", description: "Contenido SDR o resumen." },
       query: { type: "string", description: "Término de búsqueda (para search)." },
       tags: { type: "string", description: "Etiquetas separadas por coma (para consolidate)." },
-      sdrIds: { type: "string", description: "IDs de SDRCol vinculados separados por coma (para consolidate)." }
+      sdrIds: { type: "string", description: "IDs de SDRCol vinculados separados por coma (para consolidate)." },
+      quePaso: { type: "string" },
+      queSenti: { type: "string" },
+      queAprendi: { type: "string" },
+      queQuieroLograr: { type: "string" },
+      quePresupongo: { type: "string" },
+      conceptosClave: { type: "string" },
+      ejemplos: { type: "string" },
+      contraejemplos: { type: "string" },
+      dudasPendientes: { type: "string" }
     },
     required: ["action", "project"]
   }
 };
 
 export async function handler(args) {
-  const { action, project, specId, stepNumber, content, query, tags, sdrIds } = args;
+  const { 
+    action, project, specId, stepNumber, content, query, tags, sdrIds,
+    quePaso, queSenti, queAprendi, queQuieroLograr, quePresupongo,
+    conceptosClave, ejemplos, contraejemplos, dudasPendientes
+  } = args;
 
   try {
     switch (action) {
@@ -58,6 +71,41 @@ export async function handler(args) {
           content: [{
             type: "text",
             text: `SDR registrado en StepSpec #${stepNumber}: ${updated.id}`
+          }]
+        };
+      }
+
+      // ──────────────────────────────────────────────
+      // register_wisdom: Crea una entrada en SdrCol (Sabiduría Profunda)
+      // ──────────────────────────────────────────────
+      case "register_wisdom": {
+        if (!specId) {
+          return {
+            content: [{ type: "text", text: "register_wisdom requiere: specId" }],
+            isError: true
+          };
+        }
+
+        const wisdom = await prisma.sdrCol.create({
+          data: {
+            specId: Number(specId),
+            projectId: project,
+            quePaso,
+            queSenti,
+            queAprendi,
+            queQuieroLograr,
+            quePresupongo,
+            conceptosClave,
+            ejemplos,
+            contraejemplos,
+            dudasPendientes
+          }
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: `Sabiduría registrada en SDR_COL (ID: ${wisdom.id}) para la Spec #${specId}`
           }]
         };
       }
