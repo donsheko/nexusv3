@@ -6,6 +6,47 @@
  * @module core/injector
  */
 
+/**
+ * INJECTOR - Core configuration and MCP server setup
+ * 
+ * SAFETY GUARANTEES:
+ * ==================
+ * 
+ * 1. PRE-FLIGHT VALIDATION
+ *    - validateMcpServerPath() verifies MCP binary exists before any config write
+ *    - Prevents broken MCP references in config
+ * 
+ * 2. ATOMIC WRITES
+ *    - All config writes use atomic rename pattern (write temp → rename)
+ *    - Even if process crashes mid-write, original file is never corrupted
+ *    - Uses fs.rename() which is atomic on modern filesystems
+ * 
+ * 3. BACKUP PROTECTION
+ *    - Config backed up to .backup file before any modification
+ *    - Users can manually recover if needed
+ * 
+ * 4. FILE LOCKING
+ *    - Concurrent writes prevented by file-based locking (withLock)
+ *    - Uses write lock file with polling, timeout-based cleanup
+ *    - FIFO ordering prevents starvation
+ * 
+ * 5. STRUCTURE VALIDATION
+ *    - validateMcpConfig() ensures config[format.key] is valid object
+ *    - validatePluginArray() ensures all plugin entries are strings
+ *    - JSON serializability verified before write
+ * 
+ * 6. SHELL INJECTION PREVENTION
+ *    - escapeShellValue() in injectEnvVars prevents shell attacks
+ *    - Validates env var names match [A-Z_][A-Z0-9_]* pattern
+ * 
+ * RECOVERY:
+ * =========
+ * If injection fails:
+ * 1. Config not modified (pre-validation catches errors early)
+ * 2. If partially written: original in .backup file
+ * 3. Lock cleanup: auto-expires after 30s
+ */
+
 import { writeFile, mkdir, readdir, readFile, copyFile, stat, rename } from "fs/promises";
 import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -29,6 +70,15 @@ const MCP_SERVER_PATH = join(ROOT_DIR, "mcp", "index.js");
 /**
  * Validaciones de seguridad pre-ejecución
  */
+/**
+ * Validates that the MCP server binary exists at the expected path.
+ * This is a critical pre-flight check to prevent broken config references.
+ * 
+ * CRITICAL: Runs BEFORE any config modifications to fail fast.
+ * If this fails, NO config files will be modified.
+ * 
+ * @throws {Error} If MCP server binary not found
+ */
 async function validateMcpServerPath() {
   if (!(await pathExists(MCP_SERVER_PATH))) {
     throw new Error(
@@ -39,7 +89,22 @@ async function validateMcpServerPath() {
 }
 
 /**
- * Escribe config de forma segura (atomic write con backup)
+ * Writes config file safely using atomic write pattern.
+ * 
+ * ATOMIC WRITE GUARANTEES:
+ * 1. Create backup of existing file (.backup)
+ * 2. Write new content to temporary file (.tmp)
+ * 3. Verify temporary file integrity
+ * 4. Atomically rename temp file to actual path
+ * 
+ * This ensures:
+ * - Original file is never partially written
+ * - If process crashes, original or .backup exists
+ * - Filesystem rename is atomic on all modern systems
+ * 
+ * @param {string} configPath - Path to config file
+ * @param {object} config - Configuration object to write
+ * @throws {Error} If backup, JSON validation, or write fails
  */
 async function writeConfigSafely(configPath, config) {
   // 1. Crear backup si el archivo existe
@@ -76,7 +141,15 @@ async function writeConfigSafely(configPath, config) {
 }
 
 /**
- * Valida estructura de config MCP antes de modificar
+ * Validates config structure to prevent data corruption.
+ * 
+ * Checks that:
+ * - config[formatKey] is an object (not string, array, etc)
+ * - Structure is valid before modification
+ * 
+ * @param {object} config - Configuration object
+ * @param {string} formatKey - Key to validate ('mcp' for OpenCode)
+ * @throws {Error} If config structure is invalid
  */
 function validateMcpConfig(config, formatKey) {
   if (!config[formatKey]) {
@@ -92,7 +165,13 @@ function validateMcpConfig(config, formatKey) {
 }
 
 /**
- * Valida array de plugins
+ * Validates plugin array structure to prevent data corruption.
+ * 
+ * Ensures all plugin entries are strings before injection.
+ * Invalid entries would break config parsing.
+ * 
+ * @param {array} plugins - Array of plugin names
+ * @throws {Error} If any plugin entry is not a string
  */
 function validatePluginArray(plugins) {
   if (!Array.isArray(plugins)) {
@@ -200,9 +279,26 @@ export async function syncSubagents(agents) {
 }
 
 /**
- * 3. syncMcp
- * Genera config MCP dinámica incluyendo plugins obligatorios.
- * SEGURO: con validación, backup, atomic writes y locking
+ * 3. syncMcp - Generate MCP configuration for agents
+ * 
+ * CRITICAL SAFETY FEATURES:
+ * =========================
+ * 
+ * 1. PRE-FLIGHT: validateMcpServerPath() runs BEFORE any modifications
+ * 2. ATOMIC: All writes use atomic rename pattern via writeConfigSafely()
+ * 3. BACKUP: Original config backed up to .backup file
+ * 4. LOCKING: File-based locking prevents concurrent modifications
+ * 5. VALIDATION: Structure and plugin array validated before write
+ * 6. FAIL-SAFE: If pre-flight fails, NO configs are modified
+ * 
+ * @param {object} agents - Detected agents {id: {name, path}}
+ * @returns {Promise<object>} Results {id: {success, error?}} 
+ * 
+ * GUARANTEES:
+ * - If validation fails, OpenCode is never modified
+ * - Even if process crashes during write, original config is safe
+ * - Concurrent injections are prevented by file locking
+ * - Shell injection attacks prevented in env var injection
  */
 export async function syncMcp(agents) {
   const results = {};
