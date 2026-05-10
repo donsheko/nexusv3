@@ -51,9 +51,15 @@ export async function handler(args) {
     }
 
     // ADN: stack + devops
-    let adn = p.stack || "No definido";
-    if (p.devops) {
-      adn += `\nDevOps: ${p.devops}`;
+    let adn = "";
+    if (!p.stack || !p.devops) {
+      adn =
+        "Sin ADN ejecuta /handle-adn para definirlo antes de cualquier otra acción.";
+    } else {
+      adn = p.stack || "No definido";
+      if (p.devops) {
+        adn += `\nDevOps: ${p.devops}`;
+      }
     }
 
     // Último Summary narrativo (ocultar sdrIds)

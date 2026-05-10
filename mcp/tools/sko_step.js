@@ -39,7 +39,7 @@ export async function handler(args) {
             title: validated.title,
             meta: validated.meta,
             context: validated.context,
-            status: "pending",
+            status: "PENDING",
             dependsId: validated.dependsId || null,
           },
         });
@@ -86,7 +86,7 @@ export async function handler(args) {
         }
         const endedStep = await prisma.stepSpec.update({
           where: { id: Number(id) },
-          data: { status: "completed" },
+          data: { status: "COMPLETED" },
         });
         await syncSpecProgress(endedStep.specId);
         return {
@@ -111,7 +111,7 @@ export async function handler(args) {
         await prisma.stepSpec.update({
           where: { id: Number(id) },
           data: {
-            status: "in_progress",
+            status: "IN_PROGRESS",
             updatedAt: new Date(),
           },
         });

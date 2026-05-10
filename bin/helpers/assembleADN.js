@@ -1,5 +1,5 @@
-import { readComponent } from "./readComponent.js";
-import { join } from "path";
+import {readComponent} from "./readComponent.js";
+import {join} from "path";
 
 /**
  * Mapa de componentes del ADN y sus rutas relativas dentro de assets/.
@@ -29,7 +29,9 @@ export async function assembleADN(agentName) {
   const parts = [];
 
   for (const component of COMPONENT_MAP) {
-    const content = await readComponent(component.paths);
+    // El manifiesto (primer componente) debe conservar su frontmatter
+    const shouldClean = component.id !== "manifest";
+    const content = await readComponent(component.paths, shouldClean);
     if (content) {
       parts.push(content);
     }
@@ -37,15 +39,9 @@ export async function assembleADN(agentName) {
 
   if (parts.length === 0) {
     throw new Error(
-      `[injector] No se encontraron componentes de ADN para ensamblar.`
+      `[injector] No se encontraron componentes de ADN para ensamblar.`,
     );
   }
 
-  return [
-    `# 🧬 ADN — ${agentName}`,
-    `> Generado por Sko-Nexus v3 Injector`,
-    `> Fecha: ${new Date().toISOString()}`,
-    "",
-    ...parts,
-  ].join("\n\n");
+  return [...parts].join("\n\n");
 }

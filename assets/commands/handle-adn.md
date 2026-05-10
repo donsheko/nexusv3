@@ -1,9 +1,10 @@
 ---
 description: Mapea o actualiza el ADN técnico (Stack y DevOps) de un proyecto en la base de datos central.
-agent: adn-manager
+agent: AdnManager
 ---
 
 ## Herramientas de Genética
+
 - **Sincronizar ADN**: `sko_project({ action: "upsert", project: "UUID", name: "Nombre", stack: "JSON_Stack", devops: "JSON_DevOps" })`
 - **Obtener ADN**: `sko_project({ action: "get", project: "UUID" })`
 

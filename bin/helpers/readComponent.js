@@ -10,16 +10,16 @@ const ASSETS_DIR = join(__dirname, "..", "..", "assets");
  * Intenta leer un componente de ADN probando múltiples rutas alternativas.
  *
  * @param {Array<string>} possiblePaths - Lista de rutas relativas a assets/
- * @returns {Promise<string|null>} Contenido limpio del primer archivo encontrado, o null
+ * @param {boolean} [shouldClean=true] - Si se debe eliminar el frontmatter
+ * @returns {Promise<string|null>} Contenido del primer archivo encontrado, o null
  */
-export async function readComponent(possiblePaths) {
+export async function readComponent(possiblePaths, shouldClean = true) {
   for (const relativePath of possiblePaths) {
     const fullPath = join(ASSETS_DIR, relativePath);
     try {
       await access(fullPath, constants.F_OK);
       const raw = await readFile(fullPath, "utf-8");
-      const cleaned = cleanFrontmatter(raw);
-      return cleaned;
+      return shouldClean ? cleanFrontmatter(raw) : raw;
     } catch {
       // Intentar siguiente ruta
     }

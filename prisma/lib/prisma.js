@@ -15,11 +15,18 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 
-const pool = mariadb.createPool({
-  uri: process.env.DATABASE_URL || "mysql://sko_admin:sko_password@localhost:3320/sko_nexus",
+const dbUrl = process.env.DATABASE_URL || "mysql://sko_admin:sko_password@localhost:3320/sko_nexus";
+const url = new URL(dbUrl);
+
+const adapter = new PrismaMariaDb({
+  host: url.hostname,
+  port: parseInt(url.port) || 3306,
+  user: decodeURIComponent(url.username),
+  password: decodeURIComponent(url.password),
+  database: url.pathname.replace(/^\//, ""),
+  allowPublicKeyRetrieval: url.searchParams.get("allowPublicKeyRetrieval") === "true",
 });
 
-const adapter = new PrismaMariaDb(pool);
 const prisma = new PrismaClient({ adapter });
 
 export default prisma;

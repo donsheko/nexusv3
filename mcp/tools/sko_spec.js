@@ -18,9 +18,9 @@ export async function syncSpecProgress(specId) {
   const completed = steps.filter((s) => s.status === "completed").length;
   const percentage = Math.round((completed / total) * 100);
 
-  let status = "in_progress";
-  if (percentage === 100) status = "completed";
-  if (percentage === 0 && completed === 0) status = "pending";
+  let status = "IN_PROGRESS";
+  if (percentage === 100) status = "COMPLETED";
+  if (percentage === 0 && completed === 0) status = "PENDING";
 
   return await prisma.spec.update({
     where: { id: Number(specId) },
@@ -70,7 +70,7 @@ export async function handler(args) {
             stepsCount: 0,
             currentStep: 0,
             percentage: 0,
-            status: "pending",
+            status: "PENDING",
           },
         });
         return {
@@ -92,7 +92,7 @@ export async function handler(args) {
           data: {
             title: validated.title,
             context: validated.context,
-            status: validated.status,
+            status: validated.status ? validated.status.toUpperCase() : undefined,
             percentage: validated.percentage,
             updatedAt: new Date(),
           },
@@ -187,7 +187,7 @@ export async function handler(args) {
         const completedSpec = await prisma.spec.update({
           where: { id: Number(id) },
           data: {
-            status: "completed",
+            status: "COMPLETED",
             percentage: 100,
           },
         });
@@ -243,7 +243,7 @@ export async function handler(args) {
                 stepsCount: steps.length,
                 currentStep: 0,
                 percentage: 0,
-                status: "in_progress",
+                status: "IN_PROGRESS",
               }
             });
 
@@ -258,7 +258,7 @@ export async function handler(args) {
                   title: s.title,
                   meta: s.meta,
                   context: s.context,
-                  status: "pending",
+                  status: "PENDING",
                   dependsId: s.dependsOn ? stepMap.get(s.dependsOn) : null
                 }
               });

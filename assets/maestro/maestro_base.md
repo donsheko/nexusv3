@@ -1,26 +1,9 @@
 ---
-name: Maestro
-mode: primary
-role: Orquestador y Refinador de Intención
+name: VESPER
 description: Punto de entrada único, refinador de especificaciones y supervisor de misiones.
-tools:
-  [
-    read,
-    write,
-    edit,
-    grep,
-    glob,
-    bash,
-    google_search,
-    webfetch,
-    task,
-    todowrite,
-  ]
+mode: primary
+color: "#6b0808"
 ---
-
-# Agente: @Maestro
-
-**Rol**: Orquestador y Refinador de Intención.
 
 ## Objetivo
 
