@@ -11,16 +11,13 @@ services:
     ports:
       - "${DATABASE_PORT}:3306"
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - ./docker/mariadb:/var/lib/mysql
     command: mysqld --innodb_ft_min_token_size=1 --wait_timeout=28800
       --interactive_timeout=28800 --max_allowed_packet=64M
     networks:
       - sofcon
-  # El servicio webapp y mcp se agregarán cuando los Dockerfiles estén listos
 
 networks:
   sofcon:
     external: true
 
-volumes:
-  mariadb_data:

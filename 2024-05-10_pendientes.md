@@ -14,8 +14,10 @@ Esta lista detalla los ajustes técnicos y de seguridad necesarios antes de cons
 - [x] **Restricción de Directorio**: Validar en `sko_spec.js` que el `filePath` apunte exclusivamente a la carpeta `.sko-specs/`.
 
 ### 3. Gestión de Base de Datos
-- [ ] **Script de Migración**: Preparar flujo de `prisma migrate deploy` para MariaDB remota.
+
+- [x] **Script de Migración**: Preparar flujo de `prisma migrate deploy` para MariaDB remota.
 - [x] **Template de Entorno**: Actualizar `.env.example` con todas las variables de conexión y secretos necesarios.
+
 
 ### 4. Integridad de Datos
 - [x] **Validación de Transacciones**: Confirmar el comportamiento del rollback en `prisma.$transaction` ante fallos en inserciones masivas.
