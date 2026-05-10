@@ -46,17 +46,14 @@ export async function specMdToJsonParse(fileContent) {
     const yamlContent = blueprintBlock[1];
 
     const getValue = (key) => {
-      const regex = new RegExp(`${key}\\s*:\\s*(?:\\|\\s*\\n?([\\s\\S]*?)(?=\\n\\w+\\s*:|$)|([^\\n]+))`, "i");
+      // Busca la clave y captura todo el contenido hasta la siguiente clave (identificada por nombre: al inicio de línea) o el final del bloque
+      const regex = new RegExp(`${key}\\s*:\\s*(?:\\|\\s*\\n?)?([\\s\\S]*?)(?=\\n\\w+\\s*:|$)`, "i");
       const match = yamlContent.match(regex);
       if (!match) return null;
       
-      // Si es multi-línea (usó |)
-      if (match[1]) {
-        return match[1].split("\n").map(l => l.trim()).join("\n").trim();
-      }
-      // Si es línea simple
-      return match[2]?.trim();
+      return match[1].trim();
     };
+
 
     const projectId = getValue("project_id");
     const title = getValue("title");

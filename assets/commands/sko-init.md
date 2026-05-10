@@ -9,8 +9,8 @@ Carga los manuales de operación antes de iniciar:
 
 ## Flujo de Especificación (Protocolo v3.3 - Blueprint Mode)
 
-1.  **Captura de Necesidad**: Solicitar al usuario su historia de usuario o requerimiento técnico para comprender el contexto.
-2.  **Mapeo de Asunciones**: Identificar "puntos ciegos" (funcionales o técnicos) y generar una lista de asunciones necesarias para proceder.
+12. 1.  **Captura de Necesidad**: Solicitar al usuario su historia de usuario o requerimiento técnico para comprender el contexto. Puedes incluir una sección preliminar de "Contexto Técnico" si el usuario ya tiene claras las herramientas o el enfoque arquitectónico.
+13. 2.  **Mapeo de Asunciones**: Identificar "puntos ciegos" (funcionales o técnicos) y generar una lista de asunciones necesarias para proceder.
 3.  **Loop de Validación**:
     - Presentar la lista de asunciones numerada.
     - El usuario indica qué números desea refinar o cambiar.
