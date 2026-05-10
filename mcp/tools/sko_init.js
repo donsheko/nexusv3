@@ -16,8 +16,28 @@ export const definition = {
 
 export async function handler(args) {
   const { project } = args;
+  const rootDir = path.basename(process.cwd());
 
   try {
+    // 1. Validar que el proyecto coincida con el nombre del directorio (Estándar de Identidad)
+    if (project !== rootDir) {
+      const suggestions = [
+        `1. ${rootDir} (Nombre del directorio raíz - RECOMENDADO)`,
+        `2. ${project} (Nombre proporcionado)`,
+        `5. Otro (Especificar manualmente)`
+      ];
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `❓ Error de Identidad: El nombre del proyecto '${project}' no coincide con el directorio raíz '${rootDir}'.\n\nPor favor, elige el nombre correcto:\n${suggestions.join("\n")}`
+          }
+        ],
+        isError: true
+      };
+    }
+
     let p = await prisma.project.findFirst({
       where: {
         OR: [{ uuid: project }, { name: project }]
@@ -50,17 +70,18 @@ export async function handler(args) {
       await fs.mkdir(specsDir, { recursive: true });
     }
 
-    // ADN: stack + devops
-    let adn = "";
-    if (!p.stack || !p.devops) {
-      adn =
-        "Sin ADN ejecuta /handle-adn para definirlo antes de cualquier otra acción.";
-    } else {
-      adn = p.stack || "No definido";
-      if (p.devops) {
-        adn += `\nDevOps: ${p.devops}`;
-      }
+    // 2. ADN: Validar existencia obligatoria
+    const hasAdn = p.stack && p.stack !== "Por definir" && p.devops && p.devops !== "Por definir";
+    
+    if (!hasAdn) {
+      const adnError = `🚨 ADN NO DETECTADO: El proyecto '${p.name}' no tiene una genética técnica registrada.\n\nEs OBLIGATORIO ejecutar el comando /handle-adn antes de proceder con cualquier otra acción de orquestación.`;
+      return {
+        content: [{ type: "text", text: adnError }],
+        isError: true
+      };
     }
+
+    const adn = `${p.stack}\nDevOps: ${p.devops}`;
 
     // Último Summary narrativo (ocultar sdrIds)
     const lastSummary = p.summaries[0];

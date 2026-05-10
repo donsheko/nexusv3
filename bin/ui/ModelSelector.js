@@ -1,7 +1,7 @@
 import { createElement, useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { Select, Spinner } from '@inkjs/ui';
-import { getLocalAgents, applyModels } from '../core/models.js';
+import { getLocalAgents, applyModels, loadSelection, saveSelection } from '../core/models.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -17,6 +17,7 @@ const PHASE = Object.freeze({
 export default function ModelSelector({ onBack }) {
   const [phase, setPhase] = useState(PHASE.LOADING);
   const [agents, setAgents] = useState([]);
+  const [selection, setSelection] = useState({});
   const [modelsByProvider, setModelsByProvider] = useState({});
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [selectedProvider, setSelectedProvider] = useState(null);
@@ -25,6 +26,7 @@ export default function ModelSelector({ onBack }) {
   useEffect(() => {
     async function init() {
       const aRes = await getLocalAgents();
+      const currentSelection = await loadSelection();
       let models = {};
       try {
         const modelsPath = path.join(process.cwd(), 'opencode_models.json');
@@ -35,18 +37,28 @@ export default function ModelSelector({ onBack }) {
       }
 
       setAgents(aRes.data || []);
+      setSelection(currentSelection);
       setModelsByProvider(models);
       setPhase(PHASE.SELECT_AGENT);
     }
     init();
   }, []);
 
-  const handleAgentSelect = (agentName) => {
-    if (agentName === 'back') {
+  const handleAgentSelect = async (val) => {
+    if (val === 'back') {
       onBack();
       return;
     }
-    const agent = agents.find(a => a.name === agentName);
+
+    if (val === 'apply') {
+      setPhase(PHASE.APPLYING);
+      const res = await applyModels(selection);
+      setStatusMessage(res.success ? `✅ Cambios aplicados a ${Object.keys(selection).length} agentes.` : `❌ Error: ${res.error}`);
+      setPhase(PHASE.RESULT);
+      return;
+    }
+
+    const agent = agents.find(a => a.name === val);
     setSelectedAgent(agent);
     
     if (Object.keys(modelsByProvider).length === 0) {
@@ -72,10 +84,10 @@ export default function ModelSelector({ onBack }) {
       return;
     }
     
-    setPhase(PHASE.APPLYING);
-    const res = await applyModels({ [selectedAgent.name]: model });
-    setStatusMessage(res.success ? `✅ Modelo "${model}" aplicado a ${selectedAgent.name}.` : `❌ Error: ${res.error}`);
-    setPhase(PHASE.RESULT);
+    const newSelection = { ...selection, [selectedAgent.name]: model };
+    setSelection(newSelection);
+    await saveSelection(newSelection);
+    setPhase(PHASE.SELECT_AGENT);
   };
 
   if (phase === PHASE.LOADING) {
@@ -83,14 +95,24 @@ export default function ModelSelector({ onBack }) {
   }
 
   if (phase === PHASE.SELECT_AGENT) {
+    const maxNameLength = Math.max(...agents.map(a => a.name.length), 15);
     const options = [
-      ...agents.map(a => ({ label: `${a.name} (${a.currentModel || 'Sin modelo'})`, value: a.name })),
-      { label: '⬅ Volver', value: 'back' }
+      ...agents.map(a => {
+        const assignedModel = selection[a.name] || '---';
+        const paddedName = a.name.padEnd(maxNameLength);
+        return { 
+          label: `${paddedName}  │  Modelo: ${assignedModel}`, 
+          value: a.name 
+        };
+      }),
+      { label: '──────────────────────────────────────────────────────────────────────────', value: 'sep' },
+      { label: '🚀 APLICAR SELECCIÓN MAESTRA A ARCHIVOS LOCALES', value: 'apply' },
+      { label: '⬅ Volver al Menú Principal', value: 'back' }
     ];
     return createElement(Box, { flexDirection: 'column', padding: 1 },
-      createElement(Text, { bold: true, color: 'cyan' }, '🎯 SELECCIONA UN AGENTE LOCAL'),
+      createElement(Text, { bold: true, color: 'cyan' }, '🎯 GESTIÓN DE SELECCIÓN MAESTRA (opencode_selection.json)'),
       createElement(Box, { marginTop: 1 },
-        createElement(Select, { options, onChange: handleAgentSelect })
+        createElement(Select, { options, onChange: (val) => val !== 'sep' && handleAgentSelect(val), visibleOptionCount: 20 })
       )
     );
   }
@@ -103,7 +125,7 @@ export default function ModelSelector({ onBack }) {
     return createElement(Box, { flexDirection: 'column', padding: 1 },
       createElement(Text, { bold: true, color: 'magenta' }, `🔧 PROVEEDOR PARA: ${selectedAgent.name}`),
       createElement(Box, { marginTop: 1 },
-        createElement(Select, { options, onChange: handleProviderSelect })
+        createElement(Select, { options, onChange: handleProviderSelect, visibleOptionCount: 20 })
       )
     );
   }
@@ -116,13 +138,13 @@ export default function ModelSelector({ onBack }) {
     return createElement(Box, { flexDirection: 'column', padding: 1 },
       createElement(Text, { bold: true, color: 'yellow' }, `🤖 MODELO DE ${selectedProvider.toUpperCase()}`),
       createElement(Box, { marginTop: 1 },
-        createElement(Select, { options, onChange: handleModelSelect })
+        createElement(Select, { options, onChange: handleModelSelect, visibleOptionCount: 20 })
       )
     );
   }
 
   if (phase === PHASE.APPLYING) {
-    return createElement(Box, { padding: 1 }, createElement(Spinner, { label: "Inyectando modelo en archivo MD..." }));
+    return createElement(Box, { padding: 1 }, createElement(Spinner, { label: "Inyectando modelos en archivos MD..." }));
   }
 
   if (phase === PHASE.RESULT) {
@@ -131,7 +153,8 @@ export default function ModelSelector({ onBack }) {
       createElement(Box, { marginTop: 1 },
         createElement(Select, { 
           options: [{ label: 'Volver a Agentes', value: 'back' }], 
-          onChange: () => setPhase(PHASE.SELECT_AGENT) 
+          onChange: () => setPhase(PHASE.SELECT_AGENT),
+          visibleOptionCount: 20
         })
       )
     );
