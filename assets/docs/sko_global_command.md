@@ -24,9 +24,19 @@ Escanea el sistema operativo en busca de rutas estándar de agentes AI (`.config
 
 ### 4. Inyectar Maestro y MCP a Agentes Locales
 El proceso "corazón" de la instalación. Ejecuta 3 pasos secuenciales para cada agente elegido:
-1.  **Vincular MCP**: Registra el servidor `sko-brain` en la configuración del agente.
-2.  **Inyectar Maestro**: Ensambla el ADN modular y lo escribe en el archivo de instrucciones primario del agente. En este paso también se inyecta la **Soberanía de Sistema Operativo** (Alias `sko` y variables `OPENCODE_DISABLE_CLAUDE_CODE`) en el `.bashrc` / `.zshrc`.
-3.  **Inyectar Subagentes & Skills**: Copia físicamente los ejecutores (`@builder`, etc.) y el arsenal técnico (Skills) al disco local del agente.
+
+1.  **Vincular MCP**: 
+    *   Registra el servidor `sko-brain` en el archivo de configuración del agente (ej: `opencode.json`).
+    *   Inyecta automáticamente los plugins obligatorios definidos en el perfil (ej: `antigravity-auth`).
+2.  **Inyectar Maestro**: 
+    *   **Ensamblaje ADN**: Construye el `maestro.md` uniendo la base, la personalidad y el escudo de reglas (`shield.md`).
+    *   **Bypass de Seguridad**: Crea un archivo `AGENTS.md` vacío para evitar que el agente haga fallback a configuraciones globales externas.
+    *   **Copia de Comandos**: Copia físicamente todos los archivos `.md` de `assets/commands/` a la carpeta `commands/` local del agente. Esto habilita los comandos de barra inclinada (ej: `/sko-init`).
+    *   **Soberanía de Shell**: Inyecta en el `.bashrc` / `.zshrc` el alias global `sko` y las variables `OPENCODE_DISABLE_CLAUDE_CODE` para blindar el entorno de ejecución.
+3.  **Inyectar Subagentes & Skills**: 
+    *   **Subagentes**: Copia los ejecutores (`@builder`, `@arquitecto`, etc.) desde `assets/subagents/`. A cada uno se le **anexa automáticamente el escudo de reglas (`shield.md`)** al final de sus instrucciones para garantizar el cumplimiento del protocolo.
+    *   **Skills (Arsenal)**: Copia físicamente todas las carpetas de `assets/skills/` al disco local del agente. Esto permite que el agente consulte guías técnicas (Prisma, React, etc.) localmente sin depender de la red.
+
 
 ### 5. Detectar Modelos de Opencode
 Consulta directamente a la CLI de OpenCode para obtener la lista actualizada de modelos y proveedores disponibles. 
