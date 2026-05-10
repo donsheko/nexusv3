@@ -116,3 +116,16 @@ model AuditSpec {
 
   @@map("audit_specs")
 }
+
+model Skill {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  content   String   @db.Text
+  topic     String?
+  stack     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("skills")
+}
+

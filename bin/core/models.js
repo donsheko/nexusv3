@@ -1,8 +1,10 @@
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -12,8 +14,8 @@ const __dirname = path.dirname(__filename);
  */
 export async function detectModels() {
   try {
-    const output = execSync('opencode models', { encoding: 'utf-8' });
-    const lines = output.split(/\r?\n/).filter(line => line.trim() && line.includes('/'));
+    const { stdout } = await execAsync('opencode models', { timeout: 10000 });
+    const lines = stdout.split(/\r?\n/).filter(line => line.trim() && line.includes('/'));
     
     const modelsByProvider = {};
     lines.forEach(line => {

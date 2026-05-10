@@ -30,8 +30,8 @@ export async function createBackup(agents) {
         profile.config.mcpConfigFile
       ].filter(Boolean);
 
-      const itemsToZip = items.join(' ');
-      await execAsync(`zip -r ${backupName} ${itemsToZip}`, { cwd: targetPath });
+      const itemsToZip = items.map(item => `"${item}"`).join(' ');
+      await execAsync(`zip -r "${backupName}" ${itemsToZip}`, { cwd: targetPath });
       results[id] = { success: true, backup: backupName };
 
     } catch (err) {

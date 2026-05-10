@@ -6,7 +6,7 @@
  * Basado en el menú clásico de la v2 pero con la potencia de Ink.
  */
 
-import { createElement, useState, useCallback, useEffect } from 'react';
+import { createElement, useState, useCallback, useEffect, useRef } from 'react';
 import { render, Box, Text, useApp } from 'ink';
 import { Select } from '@inkjs/ui';
 
@@ -46,86 +46,101 @@ function App() {
   const [selectedAgents, setSelectedAgents] = useState([]);
   const [results, setResults] = useState([]);
   const [isInitializing, setIsInitializing] = useState(true);
+  const timerRef = useRef(null);
+
+  const cleanupTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
 
   // --- Inicialización de Estado Local ---
   useEffect(() => {
+    let isMounted = true;
     async function init() {
       const state = await loadLocalState();
       
-      // Si el archivo no existe o nunca se ha actualizado, forzamos detección inicial
+      const detected = await detectLocalAgents();
+      if (!isMounted) return;
+
       if (!state.updatedAt) {
-        const detected = await detectLocalAgents();
         const activeAgents = {};
-        
         Object.entries(detected).forEach(([id, info]) => {
           if (info.exists) {
             activeAgents[id] = { enabled: true, path: info.path };
           }
         });
-
         await saveLocalState({ updatedAt: new Date().toISOString(), activeAgents });
-        setAgents(detected);
-      } else {
-        // Si ya existe, cargamos los agentes detectados para el menú
-        const detected = await detectLocalAgents();
-        setAgents(detected);
       }
+      
+      setAgents(detected);
       setIsInitializing(false);
     }
     init();
+    return () => {
+      isMounted = false;
+      cleanupTimer();
+    };
   }, []);
 
   const handleBannerComplete = useCallback(() => setPhase(PHASE.MENU), []);
 
-
   const handleMenuSelect = async (value) => {
+    cleanupTimer();
     setStatusMessage('');
-    switch (value) {
-      case 'sync':
-        setPhase(PHASE.SYNCING);
-        const res = await syncBrain();
-        setStatusMessage(res.success ? '✅ Cerebro sincronizado.' : `❌ Error: ${res.error}`);
-        setTimeout(() => setPhase(PHASE.MENU), 2000);
-        break;
-      
-      case 'detect':
-        setPhase(PHASE.AUTODETECTING);
-        const detected = await detectLocalAgents();
-        setAgents(detected);
-        setStatusMessage('✅ Agentes detectados.');
-        setTimeout(() => setPhase(PHASE.MENU), 1500);
-        break;
+    
+    try {
+      switch (value) {
+        case 'sync':
+          setPhase(PHASE.SYNCING);
+          const res = await syncBrain();
+          setStatusMessage(res.success ? '✅ Cerebro sincronizado.' : `❌ Error: ${res.error}`);
+          timerRef.current = setTimeout(() => setPhase(PHASE.MENU), 2000);
+          break;
+        
+        case 'detect':
+          setPhase(PHASE.AUTODETECTING);
+          const detected = await detectLocalAgents();
+          setAgents(detected);
+          setStatusMessage('✅ Agentes detectados.');
+          timerRef.current = setTimeout(() => setPhase(PHASE.MENU), 1500);
+          break;
 
-      case 'inject':
-        const currentAgents = await detectLocalAgents();
-        setAgents(currentAgents);
-        setPhase(PHASE.SELECTING_FOR_INJECTION);
-        break;
+        case 'inject':
+          const currentAgents = await detectLocalAgents();
+          setAgents(currentAgents);
+          setPhase(PHASE.SELECTING_FOR_INJECTION);
+          break;
 
-      case 'detect_models':
-        setPhase(PHASE.DETECTING_MODELS);
-        const mRes = await detectModels();
-        setStatusMessage(mRes.success ? `✅ ${Object.keys(mRes.data).length} proveedores detectados.` : `❌ Error: ${mRes.error}`);
-        setTimeout(() => setPhase(PHASE.MENU), 2000);
-        break;
+        case 'detect_models':
+          setPhase(PHASE.DETECTING_MODELS);
+          const mRes = await detectModels();
+          setStatusMessage(mRes.success ? `✅ ${Object.keys(mRes.data).length} proveedores detectados.` : `❌ Error: ${mRes.error}`);
+          timerRef.current = setTimeout(() => setPhase(PHASE.MENU), 2000);
+          break;
 
-      case 'assign_models':
-        setPhase(PHASE.ASSIGNING_MODELS);
-        break;
+        case 'assign_models':
+          setPhase(PHASE.ASSIGNING_MODELS);
+          break;
 
-      case 'dashboard':
-        setPhase(PHASE.DASHBOARD);
-        break;
+        case 'dashboard':
+          setPhase(PHASE.DASHBOARD);
+          break;
 
-      case 'auth':
-        setPhase(PHASE.EXPORTING_AUTH);
-        const auth = await exportIdentity();
-        setStatusMessage(auth.success ? JSON.stringify(auth.data, null, 2) : '❌ No se encontró auth.json global.');
-        break;
+        case 'auth':
+          setPhase(PHASE.EXPORTING_AUTH);
+          const auth = await exportIdentity();
+          setStatusMessage(auth.success ? JSON.stringify(auth.data, null, 2) : '❌ No se encontró auth.json global.');
+          break;
 
-      case 'exit':
-        exit();
-        break;
+        case 'exit':
+          exit();
+          break;
+      }
+    } catch (err) {
+      setStatusMessage(`❌ Error Crítico: ${err.message}`);
+      timerRef.current = setTimeout(() => setPhase(PHASE.MENU), 5000);
     }
   };
 
@@ -177,6 +192,7 @@ function App() {
     
     phase === PHASE.SELECTING_FOR_INJECTION && createElement(AgentSelector, {
       agents,
+      initialSelected: selectedAgents,
       onSelect: (selected) => {
         if (selected.length === 0) {
           setPhase(PHASE.MENU);
