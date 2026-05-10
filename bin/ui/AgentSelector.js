@@ -77,11 +77,17 @@ function AgentSelector({ agents, initialSelected, onSelect }) {
     createElement(Box, { marginTop: 1 },
       createElement(MultiSelect, {
         options,
-        defaultValues: initialSelected || [],
+        defaultValue: initialSelected || [],
         onSubmit: (selected) => {
-          // selected puede ser array de objetos { label, value } o array de strings
-          const selectedValues = Array.isArray(selected) 
-            ? selected.map((s) => typeof s === 'object' ? s.value : s).filter(Boolean)
+          // @inkjs/ui v2.0.0 returns string[] directly
+          // Handle both old format (array of objects) and new format (array of strings)
+          const selectedValues = Array.isArray(selected)
+            ? selected.map((s) => {
+                if (typeof s === 'object' && s.value) {
+                  return s.value;  // Old format: {label, value}
+                }
+                return s;  // New format: string
+              }).filter(Boolean)
             : [];
           onSelect(selectedValues);
         },
