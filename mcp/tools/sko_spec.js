@@ -200,86 +200,179 @@ export async function handler(args) {
           return { content: [{ type: "text", text: "Error: Se requiere filePath para parse_spec." }], isError: true };
         }
 
-        const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
-        const fileContent = await fs.readFile(absolutePath, "utf-8");
-
-        // 1. Parsear Header
-        const specMatch = fileContent.match(/\[SPEC_HEADER\]([\s\S]*?)(?=---|\n##)/);
-        if (!specMatch) throw new Error("No se encontró el bloque [SPEC_HEADER]");
+        // 0. Validación de Path (Seguridad)
+        const specsDir = path.join(process.cwd(), ".sko-specs");
+        const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
         
-        const headerText = specMatch[1];
-        const projectId = headerText.match(/PROJECT_ID\*\*:\s*([^\n]+)/)?.[1]?.trim();
-        const title = headerText.match(/TITLE\*\*:\s*([^\n]+)/)?.[1]?.trim();
-        const contextMatch = headerText.match(/CONTEXT\*\*:\s*\n?>([\s\S]*)/);
-        const context = contextMatch ? contextMatch[1].trim() : "";
+        if (!absolutePath.startsWith(specsDir)) {
+           return { 
+             content: [{ type: "text", text: `Error de Seguridad: El filePath debe estar contenido exclusivamente en '.sko-specs/'. Recibido: ${filePath}` }], 
+             isError: true 
+           };
+        }
 
-        if (!projectId || !title) throw new Error("PROJECT_ID y TITLE son obligatorios en el Blueprint.");
+        let fileContent;
+        try {
+          fileContent = await fs.readFile(absolutePath, "utf-8");
+        } catch (e) {
+          return { content: [{ type: "text", text: `Error: No se pudo leer el archivo en ${absolutePath}. Asegúrate de que exista.` }], isError: true };
+        }
+
+        // 1. Parsear Header con Regex Robustas
+        const specHeaderMatch = fileContent.match(/\[SPEC_HEADER\]([\s\S]*?)(?=---|\n##|###)/i);
+        if (!specHeaderMatch) {
+          return { content: [{ type: "text", text: "Error de Formato: No se encontró el bloque obligatorio [SPEC_HEADER]." }], isError: true };
+        }
+        
+        const headerText = specHeaderMatch[1];
+        
+        const getField = (text, field) => {
+          const regex = new RegExp(`${field}(?:\\*\\*|)\\s*:\\s*([^\\n>]+)`, "i");
+          return text.match(regex)?.[1]?.trim();
+        };
+
+        const getBlockquote = (text, field) => {
+          const regex = new RegExp(`${field}(?:\\*\\*|)\\s*:\\s*\\n?\\s*>([\\s\\S]*?)(?=\\n\\s*-|\\n\\s*#|---|$|###)`, "i");
+          const match = text.match(regex);
+          if (!match) return "";
+          return match[1]
+            .split("\n")
+            .map(line => line.trim().replace(/^>\s?/, ""))
+            .join("\n")
+            .trim();
+        };
+
+        let projectId = getField(headerText, "PROJECT_ID");
+        const title = getField(headerText, "TITLE");
+        const context = getBlockquote(headerText, "CONTEXT");
+
+        if (!projectId || !title) {
+          return { content: [{ type: "text", text: "Error de Validación: PROJECT_ID y TITLE son obligatorios en el bloque [SPEC_HEADER]. Asegúrate de que no tengan el prefijo '>'." }], isError: true };
+        }
+
+        // 1.1 Verificar existencia del Proyecto
+        const project = await prisma.project.findFirst({
+          where: {
+            OR: [
+              { uuid: projectId },
+              { name: projectId }
+            ]
+          }
+        });
+
+        if (!project) {
+          return { content: [{ type: "text", text: `Error de Integridad: El Proyecto '${projectId}' no existe en la base de datos. Verifica el nombre o UUID.` }], isError: true };
+        }
+        projectId = project.uuid; // Normalizar a UUID
 
         // 2. Parsear Steps
         const stepsData = [];
-        const stepBlocks = fileContent.split("### [STEP:").slice(1);
+        const stepBlocks = fileContent.split(/###\s*\[STEP:/i).slice(1);
+        
+        if (stepBlocks.length === 0) {
+          return { content: [{ type: "text", text: "Error de Formato: No se encontraron bloques de pasos (### [STEP: N])." }], isError: true };
+        }
+
+        const seenStepNumbers = new Set();
         
         for (const block of stepBlocks) {
-          const stepNumber = parseInt(block.split("]")[0]);
-          const sTitle = block.match(/- \*\*TITLE\*\*:\s*([^\n]+)/)?.[1]?.trim();
-          const sDependsOnStr = block.match(/- \*\*DEPENDS_ON\*\*:\s*([^\n]+)/)?.[1]?.trim();
-          const sDependsOn = (sDependsOnStr && sDependsOnStr !== "null") ? parseInt(sDependsOnStr) : null;
+          const stepHeaderMatch = block.match(/^\s*(\d+)\s*\]/);
+          if (!stepHeaderMatch) {
+            return { content: [{ type: "text", text: `Error en el Parser: No se pudo identificar el número de paso en '### [STEP:${block.substring(0,10)}...'` }], isError: true };
+          }
+          const stepNumber = parseInt(stepHeaderMatch[1]);
+
+          if (seenStepNumbers.has(stepNumber)) {
+            return { content: [{ type: "text", text: `Error de Consistencia: El Paso #${stepNumber} está duplicado en el Blueprint.` }], isError: true };
+          }
+          seenStepNumbers.add(stepNumber);
+
+          const sTitle = getField(block, "TITLE");
+          const sDependsOnStr = getField(block, "DEPENDS_ON");
+          const sDependsOn = (sDependsOnStr && sDependsOnStr.toLowerCase() !== "null") ? parseInt(sDependsOnStr) : null;
           
-          const sContextMatch = block.match(/- \*\*CONTEXT\*\*:\s*\n?>([\s\S]*?)(?=- \*\*META\*\*|$)/);
-          const sMetaMatch = block.match(/- \*\*META\*\*:\s*\n?>([\s\S]*?)(?=---|$)/);
+          const sContext = getBlockquote(block, "CONTEXT");
+          const sMeta = getBlockquote(block, "META");
           
+          if (!sTitle) {
+            return { content: [{ type: "text", text: `Error en el Paso #${stepNumber}: El campo TITLE es obligatorio y no debe empezar con '>'.` }], isError: true };
+          }
+
           stepsData.push({
             stepNumber,
-            title: sTitle || `Paso ${stepNumber}`,
+            title: sTitle,
             dependsOn: sDependsOn,
-            context: sContextMatch ? sContextMatch[1].trim() : "",
-            meta: sMetaMatch ? sMetaMatch[1].trim() : ""
+            context: sContext,
+            meta: sMeta
           });
         }
 
-        // 3. Inserción en DB (Transacción)
-        const result = await prisma.$transaction(async (tx) => {
-          const newSpec = await tx.spec.create({
-            data: {
-              projectId,
-              title,
-              context,
-              stepsCount: stepsData.length,
-              currentStep: 0,
-              percentage: 0,
-              status: "in_progress",
+        // 2.1 Validar Coherencia de Dependencias
+        for (const s of stepsData) {
+          if (s.dependsOn !== null) {
+            if (isNaN(s.dependsOn)) {
+               return { content: [{ type: "text", text: `Error en el Paso #${s.stepNumber}: La dependencia debe ser un número o 'null'.` }], isError: true };
             }
-          });
+            if (s.dependsOn === s.stepNumber) {
+              return { content: [{ type: "text", text: `Error de Lógica: El Paso #${s.stepNumber} no puede depender de sí mismo.` }], isError: true };
+            }
+            if (!seenStepNumbers.has(s.dependsOn)) {
+              return { content: [{ type: "text", text: `Error de Referencia: El Paso #${s.stepNumber} depende del Paso #${s.dependsOn}, que no existe en el Blueprint.` }], isError: true };
+            }
+          }
+        }
 
-          const createdSteps = [];
-          const stepMap = new Map(); // stepNumber -> id real
-
-          for (const s of stepsData) {
-            const dependsId = s.dependsOn ? stepMap.get(s.dependsOn) : null;
-            const step = await tx.stepSpec.create({
+        // 3. Inserción en DB (Transacción)
+        try {
+          const result = await prisma.$transaction(async (tx) => {
+            const newSpec = await tx.spec.create({
               data: {
-                specId: newSpec.id,
-                stepNumber: s.stepNumber,
-                title: s.title,
-                meta: s.meta,
-                context: s.context,
-                status: "pending",
-                dependsId: dependsId || null
+                projectId,
+                title,
+                context,
+                stepsCount: stepsData.length,
+                currentStep: 0,
+                percentage: 0,
+                status: "in_progress",
               }
             });
-            stepMap.set(s.stepNumber, step.id);
-            createdSteps.push(step);
-          }
 
-          return { spec: newSpec, steps: createdSteps };
-        });
+            const createdSteps = [];
+            const stepMap = new Map(); // stepNumber -> id real
 
-        return {
-          content: [{ 
-            type: "text", 
-            text: `✅ Blueprint procesado exitosamente.\nSpec ID: ${result.spec.id}\nSteps creados: ${result.steps.length}\n\nDatos para delegación:\n${JSON.stringify(result, null, 2)}` 
-          }]
-        };
+            // Ordenar steps por número para asegurar que las dependencias se procesen correctamente si son secuenciales
+            // Aunque el Map ayuda, si hay dependencias hacia adelante esto fallará. 
+            // El protocolo v3 asume que dependen de pasos anteriores o se maneja con el stepMap.
+            
+            for (const s of stepsData.sort((a, b) => a.stepNumber - b.stepNumber)) {
+              const dependsId = s.dependsOn ? stepMap.get(s.dependsOn) : null;
+              const step = await tx.stepSpec.create({
+                data: {
+                  specId: newSpec.id,
+                  stepNumber: s.stepNumber,
+                  title: s.title,
+                  meta: s.meta,
+                  context: s.context,
+                  status: "pending",
+                  dependsId: dependsId || null
+                }
+              });
+              stepMap.set(s.stepNumber, step.id);
+              createdSteps.push(step);
+            }
+
+            return { spec: newSpec, steps: createdSteps };
+          });
+
+          return {
+            content: [{ 
+              type: "text", 
+              text: `✅ Blueprint procesado exitosamente.\nSpec ID: ${result.spec.id}\nSteps creados: ${result.steps.length}\nProyecto vinculante: ${project.name} (${projectId})` 
+            }]
+          };
+        } catch (error) {
+           return { content: [{ type: "text", text: `Error en Transacción DB: ${error.message}` }], isError: true };
+        }
       }
 
       case "sync":

@@ -6,7 +6,7 @@
  * Basado en el menú clásico de la v2 pero con la potencia de Ink.
  */
 
-import { createElement, useState, useCallback } from 'react';
+import { createElement, useState, useCallback, useEffect } from 'react';
 import { render, Box, Text, useApp } from 'ink';
 import { Select } from '@inkjs/ui';
 
@@ -16,7 +16,27 @@ import { syncBrain } from './core/syncer.js';
 import { provisionIdentity, exportIdentity, loadLocalState, saveLocalState } from './core/identity.js';
 import { detectModels } from './core/models.js';
 
-// ... (Phase definition)
+// ─── Componentes UI ────────────────────────────────────────────────────────
+import Banner from './ui/Banner.js';
+import AgentSelector from './ui/AgentSelector.js';
+import InjectionFlow from './ui/InjectionFlow.js';
+import Dashboard from './ui/Dashboard.js';
+import Summary from './ui/Summary.js';
+
+// ─── Definición de Fases ───────────────────────────────────────────────────
+const PHASE = Object.freeze({
+  BANNER: 'banner',
+  MENU: 'menu',
+  SYNCING: 'syncing',
+  AUTODETECTING: 'autodetecting',
+  SELECTING_FOR_INJECTION: 'selecting_for_injection',
+  INJECTING: 'injecting',
+  SUMMARY: 'summary',
+  DETECTING_MODELS: 'detecting_models',
+  ASSIGNING_MODELS: 'assigning_models',
+  DASHBOARD: 'dashboard',
+  EXPORTING_AUTH: 'exporting_auth'
+});
 
 function App() {
   const { exit } = useApp();
@@ -111,8 +131,7 @@ function App() {
 
   const handleInjectionComplete = (injectionResults) => {
     setResults(injectionResults || []);
-    setStatusMessage('✅ Inyección completada.');
-    setTimeout(() => setPhase(PHASE.MENU), 2000);
+    setPhase(PHASE.SUMMARY);
   };
 
   // --- Renderizado según fase ---
@@ -172,6 +191,10 @@ function App() {
       agents,
       selected: selectedAgents,
       onComplete: handleInjectionComplete
+    }),
+
+    phase === PHASE.SUMMARY && createElement(Summary, {
+      results
     }),
 
     phase === PHASE.DASHBOARD && createElement(Dashboard, {

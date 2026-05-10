@@ -1,7 +1,7 @@
 import { createElement, useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { Select } from '@inkjs/ui';
-import prisma from '../../prisma/lib/prisma.js';
+import prisma from '@sko/prisma/lib/prisma.js';
 
 export default function MissionMonitor({ onBack }) {
   const [specs, setSpecs] = useState([]);
