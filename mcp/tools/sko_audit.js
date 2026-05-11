@@ -7,7 +7,7 @@ export const definition = {
   inputSchema: {
     type: "object",
     properties: {
-      action: { type: "string", enum: ["create", "get", "fix"] },
+      action: { type: "string", enum: ["create", "get", "fix", "delete"] },
       id: { type: "number" },
       specId: { type: "number" },
       title: { type: "string" },
@@ -49,6 +49,15 @@ export async function handler(args) {
           data: { fixed: true }
         });
         return { content: [{ type: "text", text: `Auditoría ${fixed.id} marcada como resuelta.` }] };
+
+      case "delete":
+        if (!id) return { content: [{ type: "text", text: "Error: Se requiere ID para eliminar una auditoría." }], isError: true };
+        
+        await prisma.auditSpec.delete({
+          where: { id: Number(id) }
+        });
+        
+        return { content: [{ type: "text", text: `Auditoría #${id} eliminada exitosamente.` }] };
 
       default:
         return { content: [{ type: "text", text: `Acción no soportada: ${action}` }], isError: true };

@@ -8,9 +8,10 @@ export const definition = {
     properties: {
       action: {
         type: "string",
-        enum: ["register_step", "register_wisdom", "consolidate", "search"]
+        enum: ["register_step", "register_wisdom", "consolidate", "search", "delete_wisdom", "delete_summary"]
       },
       project: { type: "string", description: "UUID del proyecto." },
+      id: { type: "string", description: "ID de la entrada a eliminar (String para summary, Number para wisdom)." },
       specId: { type: "number", description: "ID de la Spec (para register_step o register_wisdom)." },
       stepNumber: { type: "number", description: "Número del step (para register_step)." },
       content: { type: "string", description: "Contenido SDR o resumen." },
@@ -33,7 +34,7 @@ export const definition = {
 
 export async function handler(args) {
   const { 
-    action, project, specId, stepNumber, content, query, tags, sdrIds,
+    action, project, id, specId, stepNumber, content, query, tags, sdrIds,
     quePaso, queSenti, queAprendi, queQuieroLograr, quePresupongo,
     conceptosClave, ejemplos, contraejemplos, dudasPendientes
   } = args;
@@ -202,6 +203,22 @@ export async function handler(args) {
             text: JSON.stringify({ summaries, sdrEntries }, null, 2)
           }]
         };
+      }
+
+      case "delete_wisdom": {
+        if (!id) return { content: [{ type: "text", text: "delete_wisdom requiere: id" }], isError: true };
+        await prisma.sdrCol.delete({
+          where: { id: Number(id) }
+        });
+        return { content: [{ type: "text", text: `Entrada de sabiduría #${id} eliminada.` }] };
+      }
+
+      case "delete_summary": {
+        if (!id) return { content: [{ type: "text", text: "delete_summary requiere: id" }], isError: true };
+        await prisma.summary.delete({
+          where: { id: String(id) }
+        });
+        return { content: [{ type: "text", text: `Resumen ${id} eliminado.` }] };
       }
 
       default:

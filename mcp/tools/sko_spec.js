@@ -41,7 +41,7 @@ export const definition = {
     properties: {
       action: {
         type: "string",
-        enum: ["start", "get", "update", "complete", "sync", "parse_spec"],
+        enum: ["start", "get", "update", "complete", "sync", "parse_spec", "delete"],
       },
       id: { type: "number" },
       filePath: { type: "string" },
@@ -285,6 +285,15 @@ export async function handler(args) {
         return {
           content: [{ type: "text", text: JSON.stringify(synced, null, 2) }],
         };
+
+      case "delete":
+        if (!id) return { content: [{ type: "text", text: "Error: Se requiere ID para eliminar una Spec." }], isError: true };
+        
+        await prisma.spec.delete({
+          where: { id: Number(id) }
+        });
+        
+        return { content: [{ type: "text", text: `Spec #${id} eliminada exitosamente.` }] };
 
       default:
         return {

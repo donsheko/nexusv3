@@ -10,7 +10,7 @@ export const definition = {
     properties: {
       action: {
         type: "string",
-        enum: ["create", "get", "next", "end", "sdr", "heartbeat"],
+        enum: ["create", "get", "next", "end", "sdr", "heartbeat", "delete"],
       },
       id: { type: "number" },
       specId: { type: "number" },
@@ -118,6 +118,22 @@ export async function handler(args) {
         return {
           content: [{ type: "text", text: `💓 Latido procesado: "${logMessage}"` }],
         };
+
+      case "delete":
+        if (!id) return { content: [{ type: "text", text: "Error: Se requiere ID para eliminar un step." }], isError: true };
+        
+        const stepToDelete = await prisma.stepSpec.findUnique({ where: { id: Number(id) } });
+        if (!stepToDelete) return { content: [{ type: "text", text: `Step #${id} no encontrado.` }], isError: true };
+
+        await prisma.stepSpec.delete({
+          where: { id: Number(id) }
+        });
+        
+        if (stepToDelete.specId) {
+            await syncSpecProgress(stepToDelete.specId);
+        }
+        
+        return { content: [{ type: "text", text: `Step #${id} eliminado exitosamente.` }] };
 
       default:
         return {

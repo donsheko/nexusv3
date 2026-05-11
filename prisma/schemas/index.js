@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const SpecSchema = z.object({
-  action: z.enum(["start", "get", "update", "complete", "sync", "parse_spec"]),
+  action: z.enum(["start", "get", "update", "complete", "sync", "parse_spec", "delete"]),
   id: z.number().optional(),
   title: z.string().optional(),
   projectId: z.string().optional(),
@@ -14,7 +14,7 @@ export const SpecSchema = z.object({
 });
 
 export const StepSchema = z.object({
-  action: z.enum(["create", "get", "next", "end", "sdr", "heartbeat"]),
+  action: z.enum(["create", "get", "next", "end", "sdr", "heartbeat", "delete"]),
   id: z.number().optional(),
   specId: z.number().optional(),
   stepNumber: z.number().optional(),
@@ -27,7 +27,7 @@ export const StepSchema = z.object({
 });
 
 export const ProjectSchema = z.object({
-  action: z.enum(["get", "upsert"]),
+  action: z.enum(["get", "upsert", "delete"]),
   project: z.string(),
   name: z.string().optional(),
   stack: z.string().optional(),
@@ -35,7 +35,7 @@ export const ProjectSchema = z.object({
 });
 
 export const AuditSchema = z.object({
-  action: z.enum(["create", "get", "fix"]),
+  action: z.enum(["create", "get", "fix", "delete"]),
   id: z.number().optional(),
   specId: z.number().optional(),
   title: z.string().optional(),

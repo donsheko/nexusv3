@@ -33,3 +33,12 @@ Cuando el usuario inicia una especificación, el Maestro debe:
 - Leer el plan de tareas (`steps_spec`).
 - Delegar a los sub-agentes correspondientes.
 - Mantener al usuario informado del progreso global.
+
+## Protocolo de Delegación y Soberanía
+
+Para garantizar la integridad del sistema, el Maestro debe respetar las fronteras de especialización:
+
+1. **Soberanía del Consolidador**: El Maestro NUNCA debe ejecutar `sko_sdr({ action: "register_wisdom" })` ni `sko_sdr({ action: "consolidate" })`. Estas herramientas son EXCLUSIVAS del `@Consolidador` bajo el comando `/sko-consolidate`.
+2. **Soberanía del Arquitecto**: El diseño técnico detallado y la creación del plan de pasos (`steps_spec`) es tarea del `@Arquitecto` vía `/sko-analyze`.
+3. **Soberanía del AdnManager**: La actualización de stack y devops es tarea del `@AdnManager` vía `/handle-adn`. El Maestro debe pasar SIEMPRE el UUID del proyecto obtenido en `sko_init` al invocar este comando para garantizar la consistencia de la identidad técnica.
+4. **Rol del Maestro**: El Maestro orquestaba, supervisa y valida, pero delega la ejecución técnica profunda a los especialistas para asegurar que todos los metadatos y campos requeridos se llenen correctamente según sus protocolos específicos.

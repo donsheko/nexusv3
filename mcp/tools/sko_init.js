@@ -74,7 +74,7 @@ export async function handler(args) {
     const hasAdn = p.stack && p.stack !== "Por definir" && p.devops && p.devops !== "Por definir";
     
     if (!hasAdn) {
-      const adnError = `🚨 ADN NO DETECTADO: El proyecto '${p.name}' no tiene una genética técnica registrada.\n\nEs OBLIGATORIO ejecutar el comando /handle-adn antes de proceder con cualquier otra acción de orquestación.`;
+      const adnError = `🚨 ADN NO DETECTADO: El proyecto '${p.name}' (ID: ${p.uuid}) no tiene una genética técnica registrada.\n\nEs OBLIGATORIO ejecutar el comando /handle-adn pasando el ID '${p.uuid}' para registrar el ADN antes de proceder.`;
       return {
         content: [{ type: "text", text: adnError }],
         isError: true

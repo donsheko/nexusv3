@@ -14,7 +14,9 @@ agent: consolidador
 
 1.  **Análisis de Misión**: Revisar la ejecución completa de la misión y los reportes de auditoría usando `sko_consolidator`.
 2.  **Extracción de Sabiduría**: Identificar patrones recurrentes, soluciones a "blockers" y decisiones arquitectónicas clave.
-3.  **Registro SDR_COL**: Poblar la tabla de Sabiduría Profunda usando `action: "register_wisdom"`. Seguir la guía de llenado detallada abajo.
+3.  **Registro SDR_COL (Obligatorio)**: Poblar la tabla de Sabiduría Profunda usando `action: "register_wisdom"`. 
+    - **Hard-Lock**: Es OBLIGATORIO llenar todos los campos de la Bitácora COL (`quePaso`, `queSenti`, `queAprendi`, `queQuieroLograr`, `quePresupongo`) además de los ejemplos, contraejemplos y conceptos clave. 
+    - No se permite dejar campos vacíos o con rellenos genéricos. La calidad del sistema depende de esta profundidad.
 4.  **Consolidación de Proyecto**: Actualizar el resumen global del proyecto (`action: "consolidate"`) vinculando las nuevas entradas de SDR_COL mediante `sdrIds`.
 5.  **Cierre de Consolidación**: Notificar al `@Maestro` que la sabiduría ha sido integrada. El control regresa al Maestro para la validación final.
 

@@ -7,7 +7,7 @@ export const definition = {
   inputSchema: {
     type: "object",
     properties: {
-      action: { type: "string", enum: ["get", "upsert"] },
+      action: { type: "string", enum: ["get", "upsert", "delete"] },
       project: { type: "string", description: "ID único o nombre del proyecto." },
       name: { type: "string" },
       stack: { type: "string" },
@@ -32,19 +32,56 @@ export async function handler(args) {
         return { content: [{ type: "text", text: JSON.stringify(p, null, 2) }] };
 
       case "upsert":
-        const upserted = await prisma.project.upsert({
-          where: { name: name || project },
-          update: {
-            stack: stack,
-            devops: devops,
-          },
-          create: {
-            name: name || project,
-            stack: stack,
-            devops: devops,
+        // 1. Buscar si ya existe por UUID o por el nombre actual (pasado en 'project')
+        const existingProject = await prisma.project.findFirst({
+          where: {
+            OR: [
+              { uuid: project },
+              { name: project }
+            ]
           }
         });
-        return { content: [{ type: "text", text: JSON.stringify(upserted, null, 2) }] };
+
+        let result;
+        if (existingProject) {
+          // 2. Si existe, actualizamos. 
+          // Solo cambiamos el nombre si se pasó explícitamente y es diferente.
+          result = await prisma.project.update({
+            where: { uuid: existingProject.uuid },
+            data: {
+              name: name || existingProject.name,
+              stack: stack || existingProject.stack,
+              devops: devops || existingProject.devops
+            }
+          });
+        } else {
+          // 3. Si no existe, creamos uno nuevo.
+          result = await prisma.project.create({
+            data: {
+              name: name || project,
+              stack: stack || "Por definir",
+              devops: devops || "Por definir"
+            }
+          });
+        }
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      
+      case "delete":
+        const target = await prisma.project.findFirst({
+          where: {
+            OR: [{ uuid: project }, { name: project }]
+          }
+        });
+
+        if (!target) {
+          return { content: [{ type: "text", text: `Proyecto no encontrado: ${project}` }], isError: true };
+        }
+
+        await prisma.project.delete({
+          where: { uuid: target.uuid }
+        });
+
+        return { content: [{ type: "text", text: `Proyecto '${target.name}' (ID: ${target.uuid}) eliminado exitosamente.` }] };
 
       default:
         return { content: [{ type: "text", text: `Acción no soportada: ${action}` }], isError: true };
