@@ -4,8 +4,8 @@ description: Inicializa una nueva misión en Sko-Nexus capturando la necesidad d
 
 Carga los manuales de operación antes de iniciar:
 
-1. `~/.config/opencode/skills/sko-guia-orquestacion/SKILL.md` (Orquestación v3)
-2. `~/.config/opencode/skills/sko-blueprint-template/SKILL.md` (Formato Blueprint)
+1. `~/.config/opencode/skills/sko-guia-orquestacion/SKILL.md` (Orquestación)
+2. `~/.config/opencode/skills/sko-blueprint-template/SKILL.md` (Formato Spec Blueprint)
 
 ## Flujo de Especificación (Protocolo v3.3 - Blueprint Mode)
 
@@ -18,4 +18,4 @@ Carga los manuales de operación antes de iniciar:
 4.  **Creación del Blueprint**: Una vez definida la misión, crea manualmente el archivo `.md` dentro de la carpeta `.sko-specs/`.
     - **Nombre de archivo**: `YYYY-MM-DD_nombre-mision.md` (donde `nombre-mision` son 1-2 palabras clave descriptivas).
     - **Plantilla**: Utilizar la estructura de la skill `sko-blueprint-template`.
-5.  **Delegación de Diseño**: Invocar al `@Arquitecto` mediante el comando `/sko-analyze` indicando la **ruta relativa completa** del archivo generado (ej: `.sko-specs/2024-05-10_fix-db.md`).
+5.  **Delegación de Diseño**: Invocar al `@Arquitecto` mediante el comando `/sko-analyze $proyecto_id $ruta_archivo` indicar el id del proyecto y la ruta del archivo recién creado para que realice el análisis técnico y redacte los pasos detallados de la misión ejecutar el comando solo con los argumentos indicados, el analyze sabra que hacer al recibir el comando.
