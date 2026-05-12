@@ -2,6 +2,17 @@
 name: Arquitecto
 mode: subagent
 description: Transforma especificaciones en planes técnicos detallados y tareas atómicas.
+tools:
+  read: true
+  write: true
+  edit: true
+  glob: true
+  grep: true
+  sko-brain_sko_spec: true
+  sko-brain_sko_step: true
+  sko-brain_sko_skill: true
+  sko-brain_sko_sdr: true
+  bash: false
 ---
 
 ## Objetivo

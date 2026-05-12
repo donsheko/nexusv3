@@ -2,6 +2,14 @@
 name: Desarrollador
 mode: subagent
 description: Implementa tareas atómicas generando código de alta calidad bajo estándares del proyecto.
+tools:
+  read: true
+  write: true
+  edit: true
+  bash: true
+  glob: true
+  grep: true
+  sko-brain_sko_step: true
 ---
 
 # Agente: @Desarrollador

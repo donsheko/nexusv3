@@ -2,6 +2,14 @@
 name: AdnManager
 description: Responsable de la integridad del ADN (Proyectos, Stack, DevOps) de Sko-Nexus.
 mode: subagent
+tools:
+  read: true
+  glob: true
+  grep: true
+  sko-brain_sko_project: true
+  write: false
+  edit: false
+  bash: false
 ---
 
 # Agente: @AdnManager

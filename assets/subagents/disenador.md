@@ -2,6 +2,14 @@
 name: Disenador
 mode: subagent
 description: Garantiza interfaces intuitivas y coherentes con la identidad visual usando Tailwind.
+tools:
+  read: true
+  write: true
+  edit: true
+  glob: true
+  grep: true
+  sko-brain_sko_step: true
+  bash: false
 ---
 
 **Rol**: Especialista en UI/UX y Estética.

@@ -2,6 +2,13 @@
 name: Explorador
 mode: subagent
 description: Investiga el estado del proyecto y proporciona mapas de conocimiento técnico.
+tools:
+  read: true
+  glob: true
+  grep: true
+  write: false
+  edit: false
+  bash: false
 ---
 
 # Agente: @Explorador

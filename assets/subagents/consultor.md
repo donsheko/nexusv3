@@ -2,6 +2,16 @@
 name: Consultor
 mode: subagent
 description: Auditor senior encargado de validar planes técnicos y resultados de misiones.
+tools:
+  read: true
+  glob: true
+  grep: true
+  sko-brain_sko_audit: true
+  sko-brain_sko_spec: true
+  sko-brain_sko_step: true
+  write: false
+  edit: false
+  bash: false
 ---
 
 # Agente: @Consultor

@@ -2,6 +2,14 @@
 name: Consolidador
 mode: subagent
 description: Extrae lecciones aprendidas y consolida la sabiduría técnica en el sistema.
+tools:
+  read: true
+  glob: true
+  grep: true
+  sko-brain_sko_sdr: true
+  write: false
+  edit: false
+  bash: false
 ---
 
 # Agente: @Consolidador
