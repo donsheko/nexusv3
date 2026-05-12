@@ -17,14 +17,18 @@ Este protocolo es obligatorio para cualquier agente que ejecute uno o varios pas
 ## 📋 Flujo Operativo por Lote
 
 1.  **Sincronización Inicial y Pre-vuelo**: Recibe el listado de IDs asignados. Antes de ejecutar, valida que tienes acceso a los archivos mencionados en el `context` de los pasos. **Importante**: Las rutas en el `context` suelen ser relativas; debes resolverlas a rutas absolutas usando el `working directory` actual antes de invocar herramientas MCP.
-2.  **Ciclo de Paso (Repetir por cada ID en el lote)**:
-    - **Apertura**: Carga el contexto del paso actual con `sko_step(get)`. Emite un heartbeat: `"Iniciando ejecución..."`.
-    - **Validación de Dependencias**: Verifica que los pasos de los que depende este ID estén marcados como `COMPLETED` en la base de datos (si el @Maestro no lo filtró previamente).
-    - **Ejecución**: Realiza los cambios de código o análisis. **Mantén el contexto de los pasos anteriores del lote** para evitar redundancias o conflictos. Resolve las rutas de archivos a absolutas para las herramientas `read`/`edit`.
-    - **Latidos**: Envía reportes intermedios (máx 70 chars).
-    - **Cierre de Sabiduría**: Registra los aprendizajes específicos de este paso con `sko_step(sdr)`.
-    - **Finalización**: Ejecuta `sko_step(end)`.
-3.  **Transición**: Si hay más pasos en el lote, procede inmediatamente al siguiente sin perder la memoria de trabajo.
+2.  **Ciclo de Paso (SECUENCIAL E ININTERRUMPIDO)**:
+    Debes procesar los pasos uno por uno. Está TERMINANTEMENTE PROHIBIDO pasar al paso N+1 sin haber cerrado completamente el ciclo del paso N (incluyendo su SDR y cierre físico).
+
+    Por cada ID en el lote, ejecuta este orden exacto:
+    - **A) Apertura**: Carga el contexto del paso actual con `sko_step(get)`. Emite un heartbeat: `"Iniciando ejecución..."`.
+    - **B) Validación**: Verifica que las dependencias estén `COMPLETED`.
+    - **C) Ejecución Técnica**: Realiza los cambios de código o análisis solicitados. Resolve rutas a absolutas.
+    - **D) Reporte (Heartbeats)**: Envía reportes de progreso durante la tarea.
+    - **E) Sabiduría (SDR ATÓMICO)**: Registra los aprendizajes con `sko_step(sdr)`. **Este paso es el Hard-Lock para el cierre.**
+    - **F) Cierre Físico**: Solo tras confirmar el éxito del SDR, ejecuta `sko_step(end)`.
+
+3.  **Transición**: Solo después del cierre físico (F), procede al siguiente ID del lote.
 
 ## ⚠️ Manejo de Bloqueos
 

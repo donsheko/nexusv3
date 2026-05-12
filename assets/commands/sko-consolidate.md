@@ -11,12 +11,13 @@ agent: consolidador
 
 ## Protocolo de Síntesis Técnica
 
-1.  **Análisis de Misión**: Revisar la ejecución completa de la misión y los reportes de auditoría usando `sko_sdr({ action: "consolidate", ... })`.
-2.  **Extracción de Sabiduría**: Identificar patrones recurrentes, soluciones a "blockers" y decisiones arquitectónicas clave.
-3.  **Registro SDR_COL (Obligatorio)**: Poblar la tabla de Sabiduría Profunda usando `action: "sdr_upsert"`. 
+1.  **Análisis de Misión**: Revisar la ejecución completa de la misión y los reportes de auditoría usando `sko_sdr({ action: "consolidate", ... })`. Debes leer TODOS los steps y sus reportes SDR atómicos.
+2.  **Extracción de Sabiduría**: Identificar patrones recurrentes, soluciones a "blockers" y decisiones arquitectónicas clave. Tu objetivo es unir los puntos de todos los pasos en una sola narrativa coherente.
+3.  **Registro SDR_COL (Único por Misión)**: Poblar la tabla de Sabiduría Profunda usando `action: "sdr_upsert"`. 
+    - **Regla de Oro**: Está ESTRICTAMENTE PROHIBIDO crear múltiples entradas de SDR_COL para la misma Spec. Debes sintetizar toda la misión en UN solo registro maestro.
     - **Hard-Lock**: Es OBLIGATORIO llenar todos los campos de la Bitácora COL (`quePaso`, `queSenti`, `queAprendi`, `queQuieroLograr`, `quePresupongo`) además de los ejemplos, contraejemplos y conceptos clave. 
     - No se permite dejar campos vacíos o con rellenos genéricos. La calidad del sistema depende de esta profundidad.
-4.  **Consolidación de Proyecto**: Actualizar el resumen global del proyecto (`action: "summary_upsert"`) vinculando las nuevas entradas de SDR_COL mediante `sdrIds`.
+4.  **Consolidación de Proyecto**: Actualizar el resumen global del proyecto (`action: "summary_upsert"`) vinculando la nueva entrada maestra de SDR_COL mediante el `id` generado.
 5.  **Cierre de Consolidación**: Notificar al `@Maestro` que la sabiduría ha sido integrada. El control regresa al Maestro para la validación final.
 
 ## Guía de Llenado SDR_COL (Síntesis Meta-Cognitiva)
