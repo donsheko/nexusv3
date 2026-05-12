@@ -15,7 +15,7 @@ export async function syncSpecProgress(specId) {
   const total = steps.length;
   if (total === 0) return;
 
-  const completed = steps.filter((s) => s.status === "completed").length;
+  const completed = steps.filter((s) => s.status.toLowerCase() === "completed").length;
   const percentage = Math.round((completed / total) * 100);
 
   let status = "IN_PROGRESS";
@@ -108,7 +108,7 @@ export async function handler(args) {
           select: { id: true, stepNumber: true, status: true },
         });
 
-        const incompleteSteps = allSteps.filter((s) => s.status !== "completed");
+        const incompleteSteps = allSteps.filter((s) => s.status.toLowerCase() !== "completed");
         if (incompleteSteps.length > 0) {
           const detail = incompleteSteps
             .map((s) => `Paso #${s.stepNumber} (ID: ${s.id}): ${s.status}`)

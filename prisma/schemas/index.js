@@ -42,3 +42,24 @@ export const AuditSchema = z.object({
   issuesFound: z.string().optional(),
   fixPlan: z.string().optional(),
 });
+
+export const SdrSchema = z.object({
+  action: z.enum(["sdr_upsert", "summary_upsert", "consolidate", "sdr_delete", "summary_delete", "search"]),
+  project: z.string(),                              // UUID del proyecto (requerido para todas las acciones)
+  id: z.union([z.number(), z.string()]).optional(), // ID numérico (SdrCol) o string (Summary) para upsert/delete
+  specId: z.number().optional(),                    // ID de la Spec (sdr_upsert, consolidate)
+  content: z.string().optional(),                   // Contenido del Summary (summary_upsert)
+  query: z.string().optional(),                     // Término de búsqueda (search)
+  tags: z.string().optional(),                      // Etiquetas separadas por coma (summary_upsert)
+  sdrIds: z.string().optional(),                    // IDs de SdrCol vinculados (summary_upsert)
+  // ── Campos COL (Bitácora de Sabiduría Profunda) ──
+  quePaso: z.string().optional(),
+  queSenti: z.string().optional(),
+  queAprendi: z.string().optional(),
+  queQuieroLograr: z.string().optional(),
+  quePresupongo: z.string().optional(),
+  conceptosClave: z.string().optional(),
+  ejemplos: z.string().optional(),
+  contraejemplos: z.string().optional(),
+  dudasPendientes: z.string().optional(),
+});

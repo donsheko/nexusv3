@@ -8,16 +8,16 @@ export const definition = {
     properties: {
       action: {
         type: "string",
-        enum: ["register_step", "register_wisdom", "consolidate", "search", "delete_wisdom", "delete_summary"]
+        enum: ["sdr_upsert", "summary_upsert", "consolidate", "search", "sdr_delete", "summary_delete"]
       },
-      project: { type: "string", description: "UUID del proyecto." },
-      id: { type: "string", description: "ID de la entrada a eliminar (String para summary, Number para wisdom)." },
-      specId: { type: "number", description: "ID de la Spec (para register_step o register_wisdom)." },
-      stepNumber: { type: "number", description: "Número del step (para register_step)." },
-      content: { type: "string", description: "Contenido SDR o resumen." },
-      query: { type: "string", description: "Término de búsqueda (para search)." },
-      tags: { type: "string", description: "Etiquetas separadas por coma (para consolidate)." },
-      sdrIds: { type: "string", description: "IDs de SDRCol vinculados separados por coma (para consolidate)." },
+      project: { type: "string", description: "UUID del proyecto (requerido para todas las acciones)." },
+      id: { type: "string", description: "ID de la entrada (Number para SdrCol, String para Summary)." },
+      specId: { type: "number", description: "ID de la Spec (sdr_upsert, consolidate)." },
+      stepNumber: { type: "number", description: "Número del step (ya no usado, mantenido por compatibilidad)." },
+      content: { type: "string", description: "Contenido del resumen (summary_upsert)." },
+      query: { type: "string", description: "Término de búsqueda (search)." },
+      tags: { type: "string", description: "Etiquetas separadas por coma (summary_upsert)." },
+      sdrIds: { type: "string", description: "IDs de SdrCol vinculados separados por coma (summary_upsert)." },
       quePaso: { type: "string" },
       queSenti: { type: "string" },
       queAprendi: { type: "string" },
@@ -34,90 +34,84 @@ export const definition = {
 
 export async function handler(args) {
   const { 
-    action, project, id, specId, stepNumber, content, query, tags, sdrIds,
+    action, project, id, specId, content, query, tags, sdrIds,
     quePaso, queSenti, queAprendi, queQuieroLograr, quePresupongo,
     conceptosClave, ejemplos, contraejemplos, dudasPendientes
   } = args;
 
   try {
     switch (action) {
-      // ──────────────────────────────────────────────
-      // register_step: Guarda/actualiza el SDR de un StepSpec
-      // ──────────────────────────────────────────────
-      case "register_step": {
-        if (!specId || !stepNumber || !content) {
-          return {
-            content: [{ type: "text", text: "register_step requiere: specId, stepNumber, content" }],
-            isError: true
-          };
-        }
-
-        const step = await prisma.stepSpec.findFirst({
-          where: { specId, stepNumber }
-        });
-
-        if (!step) {
-          return {
-            content: [{ type: "text", text: `StepSpec no encontrado: specId=${specId}, stepNumber=${stepNumber}` }],
-            isError: true
-          };
-        }
-
-        const updated = await prisma.stepSpec.update({
-          where: { id: step.id },
-          data: { sdr: content }
-        });
-
-        return {
-          content: [{
-            type: "text",
-            text: `SDR registrado en StepSpec #${stepNumber}: ${updated.id}`
-          }]
-        };
-      }
 
       // ──────────────────────────────────────────────
-      // register_wisdom: Crea una entrada en SdrCol (Sabiduría Profunda)
+      // sdr_upsert: Crea o actualiza una entrada en SdrCol
+      // Reemplaza register_wisdom. Si se proporciona `id`, actualiza.
       // ──────────────────────────────────────────────
-      case "register_wisdom": {
+      case "sdr_upsert": {
         if (!specId) {
           return {
-            content: [{ type: "text", text: "register_wisdom requiere: specId" }],
+            content: [{ type: "text", text: "sdr_upsert requiere: specId" }],
             isError: true
           };
         }
 
-        const wisdom = await prisma.sdrCol.create({
-          data: {
-            specId: Number(specId),
-            projectId: project,
-            quePaso,
-            queSenti,
-            queAprendi,
-            queQuieroLograr,
-            quePresupongo,
-            conceptosClave,
-            ejemplos,
-            contraejemplos,
-            dudasPendientes
+        const colData = {
+          specId: Number(specId),
+          projectId: project,
+          quePaso,
+          queSenti,
+          queAprendi,
+          queQuieroLograr,
+          quePresupongo,
+          conceptosClave,
+          ejemplos,
+          contraejemplos,
+          dudasPendientes
+        };
+
+        // Limpiar undefined (Zod pasa undefined, no omite campos)
+        for (const key of Object.keys(colData)) {
+          if (colData[key] === undefined) delete colData[key];
+        }
+
+        let wisdom;
+        if (id) {
+          // Actualizar entrada existente
+          const existing = await prisma.sdrCol.findUnique({
+            where: { id: Number(id) }
+          });
+          if (!existing) {
+            return {
+              content: [{ type: "text", text: `SdrCol no encontrado: id=${id}` }],
+              isError: true
+            };
           }
-        });
+          wisdom = await prisma.sdrCol.update({
+            where: { id: Number(id) },
+            data: colData
+          });
+        } else {
+          // Crear nueva entrada
+          wisdom = await prisma.sdrCol.create({
+            data: colData
+          });
+        }
 
         return {
           content: [{
             type: "text",
-            text: `Sabiduría registrada en SDR_COL (ID: ${wisdom.id}) para la Spec #${specId}`
+            text: `Sabiduría ${id ? "actualizada" : "registrada"} en SDR_COL (ID: ${wisdom.id}) para la Spec #${specId}`
           }]
         };
       }
 
       // ──────────────────────────────────────────────
-      // consolidate: Crea o sobrescribe un Summary
+      // summary_upsert: Crea o sobrescribe un Summary
+      // Reemplaza la escritura de consolidate anterior
       // ──────────────────────────────────────────────
-      case "consolidate": {
+      case "summary_upsert": {
         if (!content) {
           return {
-            content: [{ type: "text", text: "consolidate requiere: content" }],
+            content: [{ type: "text", text: "summary_upsert requiere: content" }],
             isError: true
           };
         }
@@ -130,7 +124,6 @@ export async function handler(args) {
 
         let summary;
         if (existing) {
-          // Sobrescribir resumen existente
           summary = await prisma.summary.update({
             where: { id: existing.id },
             data: {
@@ -140,7 +133,6 @@ export async function handler(args) {
             }
           });
         } else {
-          // Crear nuevo Summary
           summary = await prisma.summary.create({
             data: {
               projectId: project,
@@ -160,6 +152,73 @@ export async function handler(args) {
       }
 
       // ──────────────────────────────────────────────
+      // consolidate: Fase de LECTURA — absorbe la lógica de
+      // sko_consolidator. Retorna Spec + Steps + Audits.
+      // ──────────────────────────────────────────────
+      case "consolidate": {
+        if (!specId) {
+          return {
+            content: [{ type: "text", text: "consolidate requiere: specId" }],
+            isError: true
+          };
+        }
+
+        const spec = await prisma.spec.findUnique({
+          where: { id: Number(specId) },
+          include: {
+            steps: {
+              orderBy: { stepNumber: "asc" }
+            },
+            audits: {
+              orderBy: { createdAt: "desc" }
+            }
+          }
+        });
+
+        if (!spec) {
+          return {
+            content: [{ type: "text", text: `Spec no encontrada: ${specId}` }],
+            isError: true
+          };
+        }
+
+        const output = {
+          spec: {
+            id: spec.id,
+            projectId: spec.projectId,
+            title: spec.title,
+            status: spec.status,
+            stepsCount: spec.stepsCount,
+            currentStep: spec.currentStep,
+            percentage: spec.percentage,
+            context: spec.context,
+            createdAt: spec.createdAt,
+            updatedAt: spec.updatedAt
+          },
+          steps: spec.steps.map((s) => ({
+            id: s.id,
+            stepNumber: s.stepNumber,
+            title: s.title,
+            status: s.status,
+            meta: s.meta,
+            context: s.context,
+            sdr: s.sdr
+          })),
+          audits: spec.audits.map((a) => ({
+            id: a.id,
+            title: a.title,
+            issuesFound: a.issuesFound,
+            fixPlan: a.fixPlan,
+            fixed: a.fixed
+          }))
+        };
+
+        return {
+          content: [{ type: "text", text: JSON.stringify(output, null, 2) }]
+        };
+      }
+
+      // ──────────────────────────────────────────────
       // search: Búsqueda unificada Summary + SdrCol
       // ──────────────────────────────────────────────
       case "search": {
@@ -170,7 +229,6 @@ export async function handler(args) {
           };
         }
 
-        // Buscar en Summaries
         const summaries = await prisma.summary.findMany({
           where: {
             projectId: project,
@@ -183,7 +241,6 @@ export async function handler(args) {
           orderBy: { updatedAt: "desc" }
         });
 
-        // Buscar en SdrCol
         const sdrEntries = await prisma.sdrCol.findMany({
           where: {
             projectId: project,
@@ -205,16 +262,33 @@ export async function handler(args) {
         };
       }
 
-      case "delete_wisdom": {
-        if (!id) return { content: [{ type: "text", text: "delete_wisdom requiere: id" }], isError: true };
+      // ──────────────────────────────────────────────
+      // sdr_delete: Elimina una entrada de SdrCol por ID
+      // Reemplaza delete_wisdom
+      // ──────────────────────────────────────────────
+      case "sdr_delete": {
+        if (!id) {
+          return {
+            content: [{ type: "text", text: "sdr_delete requiere: id (numérico)" }],
+            isError: true
+          };
+        }
         await prisma.sdrCol.delete({
           where: { id: Number(id) }
         });
         return { content: [{ type: "text", text: `Entrada de sabiduría #${id} eliminada.` }] };
       }
 
-      case "delete_summary": {
-        if (!id) return { content: [{ type: "text", text: "delete_summary requiere: id" }], isError: true };
+      // ──────────────────────────────────────────────
+      // summary_delete: Elimina un Summary por ID
+      // ──────────────────────────────────────────────
+      case "summary_delete": {
+        if (!id) {
+          return {
+            content: [{ type: "text", text: "summary_delete requiere: id (string)" }],
+            isError: true
+          };
+        }
         await prisma.summary.delete({
           where: { id: String(id) }
         });

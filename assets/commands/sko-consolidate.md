@@ -4,20 +4,19 @@ agent: consolidador
 ---
 
 ## Herramientas de Consolidación
-- **Obtener Datos Misión**: `sko_spec({ action: "get", id: $1 })`
-- **Obtener Aprendizajes**: `sko_consolidator({ specId: $1 })`
-- **Registrar Sabiduría (SDR_COL)**: `sko_sdr({ action: "register_wisdom", project: "UUID", specId: $1, quePaso: "...", queAprendi: "...", ... })`
-- **Actualizar Resumen Proyecto**: `sko_sdr({ action: "consolidate", project: "UUID", content: "Resumen_Consolidado", tags: "tags", sdrIds: "ID1,ID2" })`
+- **Obtener Datos Misión**: `sko_sdr({ action: "consolidate", project: "UUID", specId: $1 })` (reemplaza al antiguo `sko_consolidator`)
+- **Registrar Sabiduría (SDR_COL)**: `sko_sdr({ action: "sdr_upsert", project: "UUID", specId: $1, quePaso: "...", queAprendi: "...", ... })` (reemplaza `register_wisdom`)
+- **Actualizar Resumen Proyecto**: `sko_sdr({ action: "summary_upsert", project: "UUID", content: "Resumen_Consolidado", tags: "tags", sdrIds: "ID1,ID2" })` (reemplaza el antiguo `consolidate` de escritura)
 - **Cierre de Consolidación**: El Consolidador no cierra la Spec, delega esta acción al `@Maestro`.
 
 ## Protocolo de Síntesis Técnica
 
-1.  **Análisis de Misión**: Revisar la ejecución completa de la misión y los reportes de auditoría usando `sko_consolidator`.
+1.  **Análisis de Misión**: Revisar la ejecución completa de la misión y los reportes de auditoría usando `sko_sdr({ action: "consolidate", ... })`.
 2.  **Extracción de Sabiduría**: Identificar patrones recurrentes, soluciones a "blockers" y decisiones arquitectónicas clave.
-3.  **Registro SDR_COL (Obligatorio)**: Poblar la tabla de Sabiduría Profunda usando `action: "register_wisdom"`. 
+3.  **Registro SDR_COL (Obligatorio)**: Poblar la tabla de Sabiduría Profunda usando `action: "sdr_upsert"`. 
     - **Hard-Lock**: Es OBLIGATORIO llenar todos los campos de la Bitácora COL (`quePaso`, `queSenti`, `queAprendi`, `queQuieroLograr`, `quePresupongo`) además de los ejemplos, contraejemplos y conceptos clave. 
     - No se permite dejar campos vacíos o con rellenos genéricos. La calidad del sistema depende de esta profundidad.
-4.  **Consolidación de Proyecto**: Actualizar el resumen global del proyecto (`action: "consolidate"`) vinculando las nuevas entradas de SDR_COL mediante `sdrIds`.
+4.  **Consolidación de Proyecto**: Actualizar el resumen global del proyecto (`action: "summary_upsert"`) vinculando las nuevas entradas de SDR_COL mediante `sdrIds`.
 5.  **Cierre de Consolidación**: Notificar al `@Maestro` que la sabiduría ha sido integrada. El control regresa al Maestro para la validación final.
 
 ## Guía de Llenado SDR_COL (Síntesis Meta-Cognitiva)
