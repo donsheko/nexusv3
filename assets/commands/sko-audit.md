@@ -3,6 +3,9 @@ description: Audita los resultados de la misión completa bajo demanda del usuar
 agent: consultor
 ---
 
+## Restricción Crítica de Auditoría
+- **Prohibición de comandos destructivos**: El Auditor debe vetar cualquier misión que incluya comandos destructivos de base de datos (`migrate:fresh`, `migrate reset`, etc.). Asimismo, tiene prohibido ejecutar dichos comandos durante las pruebas de validación. La integridad de la base de datos mediante migraciones incrementales es obligatoria.
+
 ## Herramientas de Auditoría
 - **Obtener Spec**: `sko_spec({ action: "get", id: $1 })`
 - **Registrar Hallazgo**: `sko_audit({ action: "create", specId: $1, title: "Título_Error", issuesFound: "Descripción", fixPlan: "Pasos_para_corregir" })`
