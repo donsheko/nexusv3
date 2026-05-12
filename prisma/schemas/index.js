@@ -63,3 +63,10 @@ export const SdrSchema = z.object({
   contraejemplos: z.string().optional(),
   dudasPendientes: z.string().optional(),
 });
+
+export const SkillSchema = z.object({
+  action: z.enum(["get", "search", "list", "sync", "add"]),
+  name: z.string().optional(),
+  query: z.string().optional(),
+  content: z.string().optional()
+});

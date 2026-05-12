@@ -14,6 +14,7 @@ Carga los manuales de operación antes de iniciar:
 
 - **Obtener ADN**: `sko_project({ action: "get", project: "UUID" })`
 - **Consultar Sabiduría anterior**: `sko_sdr({ action: "search", project: "UUID", query: "conceptos_clave" })`
+- **Consultar Arsenal de Skills**: `sko_skill({ action: "search", query: "tecnología/contexto" })`
 
 ## RULES
 
@@ -22,7 +23,9 @@ Carga los manuales de operación antes de iniciar:
 ## Ejecución del Diseño (Blueprint Mode)
 
 1.  **Análisis de Contexto**: El archivo a analizar se encuentra en la carpeta `.sko-specs/`. Leer la historia de usuario y asunciones desde dicho archivo `.md`. Tienes libertad para **modificar o enriquecer** cualquier sección del archivo (Contexto, Historia, Asunciones) si el análisis técnico así lo requiere. Es obligatorio incluir al final del bloque `context` la **Estrategia Técnica Global** (patrones, librerías, blindaje) antes de redactar los pasos.
-2.  **Consulta de Sabiduría**: Buscar en la Bitácora de Sabiduría (`sko_sdr`) y analizar logs o misiones previas relacionadas para identificar patrones técnicos o soluciones a problemas similares.
+2.  **Consulta de Sabiduría y Skills**: 
+    - Buscar en la Bitácora de Sabiduría (`sko_sdr`) y analizar logs o misiones previas relacionadas para identificar patrones técnicos o soluciones a problemas similares.
+    - **Arsenal de Skills**: Realizar una búsqueda de skills relevantes en el arsenal global (`sko_skill`). Es **MANDATORIO** incluir las skills seleccionadas en el bloque `context` del archivo Markdown bajo el encabezado `### Skills Sugeridas`.
 3.  **Diseño Técnico y Plan**: Redactar los pasos técnicos detallados (`### [STEP:N]`) siguiendo estrictamente la estructura de la skill `sko-blueprint-template`.
     3.1. **Pasos consecutivos por Agente**: Organizar los pasos en secciones claras por agente responsable (`@Desarrollador`, `@Diseñador`, etc.) para facilitar la delegación posterior.
     3.2. **Pasos consecutivos** En medida de lo posible las se deben pensar las tareas como acciones consecutivas por agentes para optimizar el contexto y poder pasar un agente pasos consecutivos ejemplo [STEP:12,13,14] para que el agente pueda aprovechar el contexto de los pasos anteriores y no tener que ser invocado múltiples veces con pasos individuales.
