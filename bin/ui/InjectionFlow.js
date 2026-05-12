@@ -24,15 +24,19 @@ import { join } from 'path';
 // ─── Módulos Core ──────────────────────────────────────────────────────────
 
 import { syncMaestro, syncSubagents, syncMcp, syncSkills } from '../core/injector.js';
+import { loadSelection, applyModels } from '../core/models.js';
+import { pathExists } from '../helpers/pathExists.js';
 
 // ─── Configuración de Pasos ────────────────────────────────────────────────
 
-const STEPS = [
+const BASE_STEPS = [
   { id: 'mcp', icon: '🔗', label: 'Servidor MCP' },
   { id: 'maestro', icon: '👑', label: 'Maestro (ADN)' },
   { id: 'subagents', icon: '🤖', label: 'Subagentes' },
   { id: 'skills', icon: '⚙️', label: 'Skills & Comandos' },
 ];
+
+const MODEL_STEP = { id: 'models', icon: '🎯', label: 'Persistencia de Modelos' };
 
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -85,49 +89,6 @@ function StepRow({ icon, label, status, error }) {
   );
 }
 
-// ─── Sub-componente: Estado de un agente ───────────────────────────────────
-
-/**
- * Renderiza el bloque de progreso para un agente específico.
- *
- * @param {Object}   props
- * @param {Object}   props.agent     - Información del agente { name, path }
- * @param {Object}   props.progress  - Estado de los pasos { mcp, identity, adn }
- * @param {boolean}  props.isActive  - Si es el agente actualmente procesándose
- */
-function AgentBlock({ agent, progress, isActive }) {
-  return createElement(
-    Box,
-    {
-      flexDirection: 'column',
-      marginTop: 1,
-      borderStyle: isActive ? 'round' : undefined,
-      borderColor: isActive ? 'cyan' : undefined,
-      padding: isActive ? 0 : undefined,
-    },
-    // Nombre del agente
-    createElement(Text,
-      {
-        bold: true,
-        color: isActive ? 'cyan' : 'white',
-        underline: true,
-      },
-      `${isActive ? '▶ ' : '  '}${agent.name}`,
-    ),
-    // Pasos
-    ...STEPS.map((step) =>
-      createElement(StepRow, {
-        key: step.id,
-        icon: step.icon,
-        label: step.label,
-        status: progress[step.id]?.status || 'pending',
-        error: progress[step.id]?.error,
-      }),
-    ),
-    createElement(Box, { height: 1 }),
-  );
-}
-
 // ─── Sub-componente: Barra de progreso global ──────────────────────────────
 
 /**
@@ -166,7 +127,8 @@ function InjectionFlow({ agents, selected, onComplete }) {
   const [progressMap, setProgressMap] = useState({});
   const [currentAgent, setCurrentAgent] = useState(null);
   const [currentStepId, setCurrentStepId] = useState(null);
-  const [totalSteps] = useState(selected.length * STEPS.length);
+  const [steps, setSteps] = useState(BASE_STEPS);
+  const [totalSteps, setTotalSteps] = useState(selected.length * BASE_STEPS.length);
   const [completedSteps, setCompletedSteps] = useState(0);
   const [phase, setPhase] = useState('running'); // 'running' | 'done'
   const allResults = useRef([]);
@@ -181,6 +143,13 @@ function InjectionFlow({ agents, selected, onComplete }) {
     allResults.current = [];
 
     async function run() {
+      // 1. Verificar si existe el archivo de selección para añadir el paso de modelos
+      const hasSelection = await pathExists(join(process.cwd(), 'opencode_selection.json'));
+      const activeSteps = hasSelection ? [...BASE_STEPS, MODEL_STEP] : BASE_STEPS;
+      
+      setSteps(activeSteps);
+      setTotalSteps(selected.length * activeSteps.length);
+
       // Defensive: filter out any undefined or invalid agents from selected array
       const validSelected = selected.filter(s => s && typeof s === 'string');
       
@@ -201,13 +170,12 @@ function InjectionFlow({ agents, selected, onComplete }) {
           continue;
         }
         
-        const agentPath = agentInfo?.path;
         const agentResults = { agent: agentName, steps: [] };
 
         // Inicializar progreso para este agente
         setCurrentAgent(agentName);
 
-        for (const step of STEPS) {
+        for (const step of activeSteps) {
           if (cancelled.current) break;
 
           setCurrentStepId(step.id);
@@ -240,6 +208,16 @@ function InjectionFlow({ agents, selected, onComplete }) {
               case 'skills': {
                 const res = await syncSkills({ [agentName]: agentInfo });
                 result = res[agentName];
+                break;
+              }
+              case 'models': {
+                const selection = await loadSelection();
+                if (selection[agentName]) {
+                  const res = await applyModels({ [agentName]: selection[agentName] });
+                  result = res.data[agentName];
+                } else {
+                  result = { success: true };
+                }
                 break;
               }
             }
@@ -314,28 +292,72 @@ function InjectionFlow({ agents, selected, onComplete }) {
     // Bloque de cada agente
     ...selected.map((agentName) => {
       const progress = {};
-      for (const step of STEPS) {
+      for (const step of steps) {
         progress[step.id] = progressMap[`${agentName}.${step.id}`] || { status: 'pending' };
       }
 
       // Determinar si este es el agente activo
       const agentIdx = selected.indexOf(agentName);
-      const currentIdx = selected.indexOf(currentAgent);
       const isActive =
         currentAgent === agentName &&
-        completedSteps >= agentIdx * STEPS.length &&
-        completedSteps < (agentIdx + 1) * STEPS.length;
+        completedSteps >= agentIdx * steps.length &&
+        completedSteps < (agentIdx + 1) * steps.length;
 
       // Si ya pasó de este agente, está completado
-      const isDone = completedSteps >= (agentIdx + 1) * STEPS.length;
+      const isDone = completedSteps >= (agentIdx + 1) * steps.length;
 
       return createElement(AgentBlock, {
         key: agentName,
         agent: { name: agentName, path: agents[agentName]?.path },
         progress,
         isActive: !isDone && isActive,
+        steps,
       });
     }),
+  );
+}
+
+// ─── Sub-componente: Estado de un agente ───────────────────────────────────
+
+/**
+ * Renderiza el bloque de progreso para un agente específico.
+ *
+ * @param {Object}   props
+ * @param {Object}   props.agent     - Información del agente { name, path }
+ * @param {Object}   props.progress  - Estado de los pasos { mcp, identity, adn }
+ * @param {boolean}  props.isActive  - Si es el agente actualmente procesándose
+ * @param {Array}    props.steps     - Listado de pasos activos
+ */
+function AgentBlock({ agent, progress, isActive, steps }) {
+  return createElement(
+    Box,
+    {
+      flexDirection: 'column',
+      marginTop: 1,
+      borderStyle: isActive ? 'round' : undefined,
+      borderColor: isActive ? 'cyan' : undefined,
+      padding: isActive ? 0 : undefined,
+    },
+    // Nombre del agente
+    createElement(Text,
+      {
+        bold: true,
+        color: isActive ? 'cyan' : 'white',
+        underline: true,
+      },
+      `${isActive ? '▶ ' : '  '}${agent.name}`,
+    ),
+    // Pasos
+    ...steps.map((step) =>
+      createElement(StepRow, {
+        key: step.id,
+        icon: step.icon,
+        label: step.label,
+        status: progress[step.id]?.status || 'pending',
+        error: progress[step.id]?.error,
+      }),
+    ),
+    createElement(Box, { height: 1 }),
   );
 }
 
